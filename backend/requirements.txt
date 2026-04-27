@@ -1,0 +1,27 @@
+# Core
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# Database
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.29.0
+aiosqlite==0.20.0
+alembic==1.13.3
+
+# HTTP
+aiohttp==3.10.10
+httpx==0.27.2
+
+# Data
+pandas==2.2.3
+numpy==1.26.4
+pytz==2024.2
+
+# Optional NLP (lightweight)
+# transformers==4.45.0  # Uncomment for advanced NLP
+# torch==2.4.1          # Uncomment for ML models
+
+# Dev
+python-dotenv==1.0.1

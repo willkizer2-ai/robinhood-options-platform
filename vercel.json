@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "rootDirectory": "frontend",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "outputDirectory": ".next",
+  "env": {
+    "BACKEND_URL": "https://robinhood-options-backend.onrender.com"
+  },
+  "build": {
+    "env": {
+      "BACKEND_URL": "https://robinhood-options-backend.onrender.com"
+    }
+  }
+}

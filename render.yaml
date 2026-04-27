@@ -1,0 +1,42 @@
+services:
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  - type: web
+    name: robinhood-options-backend
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    healthCheckPath: /api/health
+
+    envVars:
+      # SQLite for zero-config dev — swap for a Render Postgres DB when ready
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./robinhood_dev.db
+
+      - key: DEBUG
+        value: "false"
+
+      - key: LOW_MEMORY_MODE
+        value: "true"
+
+      # Set this to your Vercel frontend URL after deploying the frontend
+      - key: FRONTEND_URL
+        value: https://robinhood-options-platform.vercel.app
+
+      # Add your real API keys in Render dashboard → Environment tab
+      # (or leave blank to run in mock-data mode)
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: NEWSAPI_KEY
+        sync: false
+      - key: POLYGON_API_KEY
+        sync: false
+      - key: ALPHA_VANTAGE_KEY
+        sync: false
+      - key: TRADIER_API_KEY
+        sync: false
+      - key: ALERT_WEBHOOK_URL
+        sync: false

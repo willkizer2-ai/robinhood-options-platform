@@ -1,0 +1,84 @@
+# ════════════════════════════════════════════════════
+#  SECRETS — NEVER COMMIT THESE
+# ════════════════════════════════════════════════════
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example          # allow the example template
+
+# ════════════════════════════════════════════════════
+#  PYTHON
+# ════════════════════════════════════════════════════
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.so
+
+# ════════════════════════════════════════════════════
+#  DATABASE FILES (local dev only)
+# ════════════════════════════════════════════════════
+*.db
+*.sqlite
+*.sqlite3
+robinhood_dev.db
+
+# ════════════════════════════════════════════════════
+#  LOGS
+# ════════════════════════════════════════════════════
+*.log
+backend_boot.log
+backend_err.log
+frontend_boot.log
+frontend_err.log
+cf_tunnel.log
+tunnel.log
+
+# ════════════════════════════════════════════════════
+#  NODE / NEXT.JS
+# ════════════════════════════════════════════════════
+node_modules/
+.next/
+.cache/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ════════════════════════════════════════════════════
+#  DEPLOYMENT ARTIFACTS
+# ════════════════════════════════════════════════════
+.vercel/
+
+# ════════════════════════════════════════════════════
+#  BACKTEST RESULTS (large generated files)
+# ════════════════════════════════════════════════════
+backtest_results*.json
+backtest_v3_smr_results.json
+
+# ════════════════════════════════════════════════════
+#  CLAUDE CODE (local assistant config — not for repo)
+# ════════════════════════════════════════════════════
+.claude/
+
+# ════════════════════════════════════════════════════
+#  IDE / OS
+# ════════════════════════════════════════════════════
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+..*.txt
