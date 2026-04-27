@@ -1,0 +1,39 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'backend/**'
+      - 'render.yaml'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:   # allow manual trigger
+
+jobs:
+  deploy:
+    name: Trigger Render Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render deploy hook
+        # RENDER_DEPLOY_HOOK secret must be set in GitHub repo settings.
+        # Get it from: Render Dashboard → Your Service → Settings → Deploy Hook
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}" \
+            -H "Accept: application/json" \
+            --fail \
+            && echo "Render deploy triggered successfully" \
+            || echo "Deploy hook failed — check RENDER_DEPLOY_HOOK secret"
+
+      - name: Skip (no deploy hook configured)
+        if: ${{ secrets.RENDER_DEPLOY_HOOK == '' }}
+        run: |
+          echo "Skipping Render deploy: RENDER_DEPLOY_HOOK secret not set."
+          echo "To enable auto-deploy:"
+          echo "  1. Go to https://render.com/deploy?repo=https://github.com/willkizer2-ai/robinhood-options-platform"
+          echo "  2. After deploying, copy the Deploy Hook from Service → Settings"
+          echo "  3. Add it as RENDER_DEPLOY_HOOK in GitHub repo secrets"
