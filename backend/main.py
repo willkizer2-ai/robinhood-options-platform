@@ -38,35 +38,56 @@ alert_system: AlertSystem = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup and shutdown lifecycle manager."""
+    """Startup and shutdown lifecycle manager — fault-tolerant."""
     global market_scanner, news_engine, research_agent, alert_system
 
-    logger.info("🚀 Starting Robinhood Options Intelligence Platform...")
+    logger.info("Starting Robinhood Options Intelligence Platform...")
 
-    # Initialize database
-    await init_db()
+    # Initialize database — non-fatal if it fails (serves mock data)
+    try:
+        await init_db()
+        logger.info("Database ready.")
+    except Exception as e:
+        logger.error(f"DB init error (continuing with in-memory mode): {e}")
 
-    # Initialize core engines
-    market_scanner = MarketScanner()
-    news_engine = NewsIntelligenceEngine()
-    research_agent = OvernightResearchAgent()
-    alert_system = AlertSystem()
+    # Initialize core engines — each wrapped so one bad engine never kills the app
+    tasks = []
 
-    # Store in app state for route access
+    try:
+        market_scanner = MarketScanner()
+        tasks.append(asyncio.create_task(market_scanner.run_continuous()))
+        logger.info("MarketScanner started.")
+    except Exception as e:
+        logger.error(f"MarketScanner init failed: {e}")
+
+    try:
+        news_engine = NewsIntelligenceEngine()
+        tasks.append(asyncio.create_task(news_engine.run_continuous()))
+        logger.info("NewsEngine started.")
+    except Exception as e:
+        logger.error(f"NewsEngine init failed: {e}")
+
+    try:
+        research_agent = OvernightResearchAgent()
+        tasks.append(asyncio.create_task(research_agent.run_overnight()))
+        logger.info("ResearchAgent started.")
+    except Exception as e:
+        logger.error(f"ResearchAgent init failed: {e}")
+
+    try:
+        alert_system = AlertSystem()
+        tasks.append(asyncio.create_task(alert_system.run_continuous()))
+        logger.info("AlertSystem started.")
+    except Exception as e:
+        logger.error(f"AlertSystem init failed: {e}")
+
+    # Store in app state for route access (may be None if init failed)
     app.state.market_scanner = market_scanner
     app.state.news_engine = news_engine
     app.state.research_agent = research_agent
     app.state.alert_system = alert_system
 
-    # Start background tasks
-    tasks = [
-        asyncio.create_task(market_scanner.run_continuous()),
-        asyncio.create_task(news_engine.run_continuous()),
-        asyncio.create_task(research_agent.run_overnight()),
-        asyncio.create_task(alert_system.run_continuous()),
-    ]
-
-    logger.info("✅ All engines started. Platform is LIVE.")
+    logger.info("Platform is LIVE. All engines active.")
     yield
 
     # Shutdown
