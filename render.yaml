@@ -2,11 +2,9 @@ services:
   # ── FastAPI Backend ─────────────────────────────────────────────────────────
   - type: web
     name: robinhood-options-backend
-    env: python
+    env: docker          # Use Dockerfile — pins Python 3.11, installs libpq-dev
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
     healthCheckPath: /api/health
 
     envVars:
