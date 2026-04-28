@@ -26,8 +26,8 @@ export default function DashboardPage() {
   const v4Count        = (trades?.trades ?? []).filter(t => t.strategy?.startsWith('V4_')).length;
   const goldenCount    = (trades?.trades ?? []).filter(t => t.is_golden_hour).length;
 
-  // Filter mock news items for display count
-  const realNewsCount  = (news?.items ?? []).filter(i => i.source !== 'Mock News').length;
+  // Show total news count (mock items shown with DEMO badge)
+  const realNewsCount  = news?.total ?? (news?.items ?? []).length;
 
   const TABS = [
     { id: 'signals'     as Tab, label: 'Signals',     Icon: BarChart2,  badge: signalCount || null,  badgeCls: 'bg-blue-accent/20 text-blue-accent'  },

@@ -75,7 +75,7 @@ function NoCallouts({ filter, marketClosed }: { filter: FilterTab; marketClosed:
         </p>
         <p className="text-xs text-text-muted max-w-xs mx-auto leading-relaxed">
           {marketClosed
-            ? 'Trade cards are only shown 9:35 AM – 4:00 PM ET. Next session opens at tomorrow\'s open.'
+            ? 'Trade cards are only shown 9:00 AM – 4:30 PM ET. Next session opens at tomorrow\'s open.'
             : filter === 'GOLDEN'
             ? 'All confluence gates must pass simultaneously.'
             : filter === 'V4_ICT'
