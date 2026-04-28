@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = list({
         "http://localhost:3000",
         "http://localhost:3001",
+        "https://robinhood-options.vercel.app",
+        "https://robinhood-intel.vercel.app",
         # Production frontend URL (set FRONTEND_URL env var on your host)
         os.getenv("FRONTEND_URL", "http://localhost:3000"),
     })

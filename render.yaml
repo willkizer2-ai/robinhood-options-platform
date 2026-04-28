@@ -20,9 +20,9 @@ services:
       - key: LOW_MEMORY_MODE
         value: "true"
 
-      # Set this to your Vercel frontend URL after deploying the frontend
+      # Frontend Vercel URL — already live at this address
       - key: FRONTEND_URL
-        value: https://robinhood-options-platform.vercel.app
+        value: https://robinhood-options.vercel.app
 
       # Add your real API keys in Render dashboard → Environment tab
       # (or leave blank to run in mock-data mode)
