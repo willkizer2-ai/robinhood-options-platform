@@ -18,13 +18,20 @@ function ImpactBadge({ impact }: { impact: NewsImpact }) {
   );
 }
 
-function NewsItemRow({ item }: { item: NewsItem }) {
+function NewsItemRow({ item, isMock }: { item: NewsItem; isMock?: boolean }) {
   return (
     <article className="border-b border-border-dim/40 pb-3 last:border-0 last:pb-0">
       <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold tracking-wider text-text-muted uppercase">
-          {item.source}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-semibold tracking-wider text-text-muted uppercase">
+            {item.source}
+          </span>
+          {isMock && (
+            <span className="rounded px-1 py-0.5 text-[8px] font-bold tracking-widest uppercase bg-text-muted/10 text-text-muted border border-border-dim">
+              DEMO
+            </span>
+          )}
+        </div>
         <span className="flex-shrink-0 text-[10px] text-text-muted">{formatTime(item.published_at)}</span>
       </div>
 
@@ -101,17 +108,16 @@ export default function NewsFeed() {
   const { data, error, isLoading } = useNews();
   const allItems = data?.items ?? [];
 
-  // Remove mock/dev news items — only show real sourced articles
-  const realItems = allItems.filter(item => item.source !== 'Mock News');
-
   // Deduplicate by normalised headline prefix (first 70 chars)
   const seen = new Set<string>();
-  const items = realItems.filter(item => {
+  const items = allItems.filter(item => {
     const key = item.headline.toLowerCase().slice(0, 70).trim();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+
+  const isMockItem = (item: NewsItem) => item.source === 'Mock News';
 
   const highImpact = items.filter(i => i.impact === 'HIGH').length;
 
@@ -154,15 +160,17 @@ export default function NewsFeed() {
               <Info className="h-5 w-5 text-text-muted" />
             </div>
             <div>
-              <p className="text-sm font-medium text-text-primary mb-1">No news data available</p>
+              <p className="text-sm font-medium text-text-primary mb-1">News engine starting…</p>
               <p className="text-xs text-text-muted max-w-xs leading-relaxed">
-                Real-time news requires a Benzinga or NewsAPI key configured in the backend.
-                Simulated/mock articles are not shown.
+                The news feed refreshes every 60 seconds. Add a free NewsAPI key in Render
+                for live articles — mock articles show automatically until then.
               </p>
             </div>
           </div>
         ) : (
-          items.map((item) => <NewsItemRow key={item.id} item={item} />)
+          items.map((item) => (
+            <NewsItemRow key={item.id} item={item} isMock={isMockItem(item)} />
+          ))
         )}
       </div>
     </section>
