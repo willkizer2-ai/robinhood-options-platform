@@ -85,9 +85,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Content area — glass wrapper over canvas ── */}
+        {/* ── Content area ── */}
         <main className="mx-auto max-w-screen-2xl px-4 py-5 pb-12">
-              <div className={cn('tab-panel', activeTab === 'signals' ? 'block' : 'hidden')}>
+
+          <div className={cn('tab-panel', activeTab === 'signals' ? 'block' : 'hidden')}>
               {/* Compact stats strip */}
               {trades && (
                 <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border-dim bg-bg-elevated/80 px-4 py-2.5 text-xs">
