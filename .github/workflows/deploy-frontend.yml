@@ -1,17 +1,24 @@
-name: Deploy Frontend to Vercel
+name: Deploy Frontend → Vercel
+
+# Triggers on every push to master that touches frontend code.
+# Deploys to Vercel production, then re-pins the stable alias so
+# https://robinhood-options.vercel.app always points to the latest build.
+#
+# One-time setup (do this once in the GitHub repo):
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Name: VERCEL_TOKEN   Value: <token from https://vercel.com/account/tokens>
 
 on:
   push:
     branches: [master, main]
     paths:
       - 'frontend/**'
-      - 'vercel.json'
       - '.github/workflows/deploy-frontend.yml'
-  workflow_dispatch:   # allow manual trigger
+  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy to Vercel
+    name: Build & Deploy
     runs-on: ubuntu-latest
 
     steps:
@@ -26,15 +33,31 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Vercel CLI
-        run: npm install -g vercel@33
+        run: npm install -g vercel@latest
 
-      # Source deploy — Vercel builds in the cloud (no local build step needed).
-      # Requires VERCEL_TOKEN (PAT), VERCEL_ORG_ID, VERCEL_PROJECT_ID in repo secrets.
-      # frontend/.vercel/project.json is committed so the CLI auto-detects the project.
-      - name: Deploy to Vercel (source deploy)
+      # VERCEL_ORG_ID and VERCEL_PROJECT_ID are not secrets — they identify the
+      # project but cannot be used to authenticate on their own.
+      - name: Deploy to Vercel (production)
+        id: deploy
         working-directory: frontend
         env:
+          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID:     team_N0nMv6rUqqYlzprShYPqY4ru
+          VERCEL_PROJECT_ID: prj_LxPEarPxbgL461xriQpkfP9ZGQJF
+        run: |
+          DEPLOY_URL=$(vercel --prod --yes --token "$VERCEL_TOKEN" 2>&1 \
+            | grep -oE 'https://robinhood-options-platform-[^[:space:]]+\.vercel\.app' \
+            | tail -1)
+          echo "deploy_url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed → $DEPLOY_URL"
+
+      # Keep the stable vanity URL pointing at the freshest production build
+      # so bookmarks and shared links never break.
+      - name: Pin robinhood-options.vercel.app → latest build
+        env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: vercel deploy --prod --yes --token=$VERCEL_TOKEN
+        run: |
+          vercel alias set "${{ steps.deploy.outputs.deploy_url }}" \
+            robinhood-options.vercel.app \
+            --token "$VERCEL_TOKEN" --yes
+          echo "✓ robinhood-options.vercel.app → ${{ steps.deploy.outputs.deploy_url }}"
