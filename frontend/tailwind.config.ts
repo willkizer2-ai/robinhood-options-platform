@@ -1,5 +1,11 @@
 import type { Config } from 'tailwindcss';
 
+// ── Market Cyclops color system ───────────────────────────────────────────────
+// Keep in sync with the CSS custom properties in globals.css.
+// "blue-accent" token name preserved so existing component code compiles
+// unchanged — the VALUE is now neon green.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const config: Config = {
   content: [
     './src/**/*.{js,ts,jsx,tsx,mdx}',
@@ -7,42 +13,45 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Surfaces — JP Morgan light theme ──────────────────────────────
-        'bg-base':     '#F4F6F9',   // page background — cool off-white
-        'bg-card':     '#FFFFFF',   // card surface — pure white
-        'bg-elevated': '#EEF2F7',   // inner section / raised block
-        // ── Borders ───────────────────────────────────────────────────────
-        'border-dim':  '#E2E8F0',   // faintest divider
-        'border-med':  '#CBD5E1',   // standard border
-        // ── Text hierarchy ────────────────────────────────────────────────
-        'text-primary':   '#0F172A', // near-black (slate-900)
-        'text-secondary': '#475569', // medium gray (slate-600)
-        'text-muted':     '#94A3B8', // light gray (slate-400)
-        // ── Brand — JPMorgan Chase signature navy ─────────────────────────
-        'blue-accent': '#003087',   // JPM deep navy blue
-        // ── Directional ───────────────────────────────────────────────────
-        'green-trade': '#15692A',   // deep forest green
-        'red-trade':   '#B91C1C',   // deep red
-        // ── Warning & alerts ──────────────────────────────────────────────
-        'yellow-alert': '#92400E',  // dark amber
-        'gold-trade':   '#92400E',  // golden amber (Golden Hour)
-        'gold-glow':    '#B45309',  // lighter amber highlight
-        // ── Contract action states ────────────────────────────────────────
-        'state-hold':   '#B45309',  // amber  — holding position
-        'state-profit': '#15692A',  // green  — took profit
-        'state-exit':   '#B91C1C',  // red    — terminated / stopped out
+        // ── Surfaces ──────────────────────────────────────────────────────────
+        'bg-base':     '#080B0F',   // near-black page background
+        'bg-card':     '#0D1117',   // dark card surface
+        'bg-elevated': '#111820',   // raised block / inner section
+        // ── Borders ───────────────────────────────────────────────────────────
+        'border-dim':  '#1A2430',   // faintest divider
+        'border-med':  '#253045',   // standard border
+        // ── Text hierarchy ────────────────────────────────────────────────────
+        'text-primary':   '#CDD9E5', // primary text — off-white
+        'text-secondary': '#7A8D9E', // medium muted
+        'text-muted':     '#3E5268', // faintest labels
+        // ── Accent — neon green (Bloomberg terminal feel) ─────────────────────
+        'blue-accent': '#00FF88',   // kept as "blue-accent" for code compat
+        // ── Directional trade states ──────────────────────────────────────────
+        'green-trade': '#22C55E',   // profit / bullish
+        'red-trade':   '#EF4444',   // loss / bearish
+        // ── Alerts & warnings ─────────────────────────────────────────────────
+        'yellow-alert': '#F59E0B',  // amber warning
+        'gold-trade':   '#F59E0B',  // golden-hour signal
+        'gold-glow':    '#FBBF24',  // lighter amber highlight
+        // ── Contract action states ────────────────────────────────────────────
+        'state-hold':   '#F59E0B',  // amber  — holding position
+        'state-profit': '#22C55E',  // green  — took profit
+        'state-exit':   '#EF4444',  // red    — stopped out / exited
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        'card':    '0 1px 3px 0 rgba(15,23,42,0.07), 0 1px 2px -1px rgba(15,23,42,0.07)',
-        'card-md': '0 4px 6px -1px rgba(15,23,42,0.08), 0 2px 4px -2px rgba(15,23,42,0.08)',
-        'card-lg': '0 8px 16px -2px rgba(15,23,42,0.10), 0 4px 6px -4px rgba(15,23,42,0.08)',
+        // Dark-optimised shadows with subtle inner border highlight
+        'card':    '0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
+        'card-md': '0 4px 16px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05)',
+        'card-lg': '0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)',
+        // Neon accent glow — use sparingly on interactive highlights
+        'neon':    '0 0 12px rgba(0,255,136,0.20), 0 0 28px rgba(0,255,136,0.08)',
       },
       animation: {
-        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'blink':      'blink 1.2s step-start infinite',
       },
       keyframes: {

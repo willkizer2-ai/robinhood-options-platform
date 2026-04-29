@@ -2,23 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Market Cyclops — CSS custom properties ──────────────────────────────────
+   These mirror tailwind.config.ts tokens so both CSS and Tailwind classes
+   stay in sync. Update values in BOTH files when changing the color system.
+   ──────────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg-base:        #F4F6F9;
-  --bg-card:        #FFFFFF;
-  --bg-elevated:    #EEF2F7;
-  --border-dim:     #E2E8F0;
-  --border-med:     #CBD5E1;
-  --text-primary:   #0F172A;
-  --text-secondary: #475569;
-  --text-muted:     #94A3B8;
-  --blue-accent:    #003087;
-  --green-trade:    #15692A;
-  --red-trade:      #B91C1C;
-  --yellow-alert:   #92400E;
-  --gold-trade:     #92400E;
-  --state-hold:     #B45309;
-  --state-profit:   #15692A;
-  --state-exit:     #B91C1C;
+  /* Surfaces */
+  --bg-base:        #080B0F;
+  --bg-card:        #0D1117;
+  --bg-elevated:    #111820;
+  /* Borders */
+  --border-dim:     #1A2430;
+  --border-med:     #253045;
+  /* Text hierarchy */
+  --text-primary:   #CDD9E5;
+  --text-secondary: #7A8D9E;
+  --text-muted:     #3E5268;
+  /* Accent — neon green */
+  --blue-accent:    #00FF88;   /* token kept as "blue-accent" for code compat */
+  /* Directional */
+  --green-trade:    #22C55E;
+  --red-trade:      #EF4444;
+  /* Alerts / states */
+  --yellow-alert:   #F59E0B;
+  --gold-trade:     #F59E0B;
+  --state-hold:     #F59E0B;
+  --state-profit:   #22C55E;
+  --state-exit:     #EF4444;
 }
 
 html {
@@ -26,28 +36,28 @@ html {
 }
 
 body {
-  background: #F4F6F9;
-  color: #0F172A;
+  background: #080B0F;
+  color: #CDD9E5;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
     'Oxygen', 'Ubuntu', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar — thin & light */
+/* ── Scrollbar — dark terminal style ─────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #CBD5E1 transparent;
+  scrollbar-color: #253045 transparent;
 }
 *::-webkit-scrollbar       { width: 4px; height: 4px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #253045;
   border-radius: 2px;
 }
-*::-webkit-scrollbar-thumb:hover { background: #003087; }
+*::-webkit-scrollbar-thumb:hover { background: #00FF88; }
 
-/* Skeleton shimmer — light theme */
+/* ── Skeleton shimmer — dark theme ───────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
@@ -56,15 +66,15 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    #EEF2F7 25%,
-    #E2E8F0 50%,
-    #EEF2F7 75%
+    #111820 25%,
+    #1A2430 50%,
+    #111820 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
-/* Live-blink indicator */
+/* ── Live-blink indicator ─────────────────────────────────────────────────── */
 @keyframes live-blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.25; }
@@ -72,5 +82,49 @@ body {
 
 .live-dot { animation: live-blink 1.4s ease-in-out infinite; }
 
-/* Smooth confidence bar fill */
+/* ── Smooth confidence bar fill ──────────────────────────────────────────── */
 .confidence-bar { transition: width 0.6s ease; }
+
+/* ── Scan-line sweep — horizontal pass top→bottom every 12 s ─────────────
+   Tune: change animation-duration to adjust frequency.
+   Tune: change rgba opacity (0.08) to make more/less visible.
+   ──────────────────────────────────────────────────────────────────────────── */
+@keyframes scan-sweep {
+  0%   { top: -2px;   opacity: 0;   }
+  4%   { opacity: 1;               }
+  96%  { opacity: 1;               }
+  100% { top: 100vh;  opacity: 0;   }
+}
+
+.scan-line {
+  position: fixed;
+  left:     0;
+  right:    0;
+  top:      -2px;
+  height:   1px;
+  /* Gradient fades at edges so it doesn't look like a bar */
+  background: linear-gradient(
+    90deg,
+    transparent          0%,
+    rgba(0,255,136,0.08) 15%,
+    rgba(0,255,136,0.06) 50%,
+    rgba(0,255,136,0.08) 85%,
+    transparent          100%
+  );
+  z-index:        2;
+  pointer-events: none;
+  animation: scan-sweep 12s linear infinite;
+  animation-delay: 4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-line { animation: none; display: none; }
+}
+
+/* ── Glassmorphism utility ────────────────────────────────────────────────── */
+.mc-glass {
+  background:            rgba(13, 17, 23, 0.72);
+  backdrop-filter:       blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border:                1px solid rgba(255, 255, 255, 0.05);
+}
