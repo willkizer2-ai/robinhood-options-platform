@@ -28,6 +28,8 @@ async def get_trades(
     - Use golden_only=true to see only Golden Hour trades.
     """
     scanner = request.app.state.market_scanner
+    if scanner is None:
+        raise HTTPException(503, "Market scanner is initializing — please retry in a moment")
     trades  = scanner.get_active_setups()   # already sorted, DO_TAKE only
 
     if golden_only:
@@ -50,6 +52,8 @@ async def get_trades(
 async def get_trade_detail(request: Request, trade_id: str):
     """Get full detail for a specific trade setup."""
     scanner = request.app.state.market_scanner
+    if scanner is None:
+        raise HTTPException(503, "Market scanner is initializing — please retry in a moment")
     # active_setups is now keyed by ticker_direction; support both key forms
     trade = (
         scanner.active_setups.get(trade_id) or
