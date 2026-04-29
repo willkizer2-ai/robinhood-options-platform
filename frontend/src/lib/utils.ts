@@ -33,10 +33,6 @@ export function formatPct(n: number | undefined | null): string {
 // The backend stores naive UTC datetimes. We force UTC interpretation by
 // appending 'Z' when no timezone designator is present, then convert to ET.
 
-function toET(iso: string): Intl.DateTimeFormat {
-  return new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
 /** Returns e.g. "9:34 AM" in ET — appends Z to treat bare ISO strings as UTC */
 export function formatTime(iso: string | undefined | null): string {
   if (!iso) return '—';
