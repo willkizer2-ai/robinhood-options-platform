@@ -150,12 +150,12 @@ class MarketScanner:
         return (9 * 60) <= t <= (16 * 60 + 30)
 
     def _in_entry_window(self) -> bool:
-        """True if current ET time is within the Judas Swing entry window (9:35–9:42 AM).
+        """True if current ET time is within the 0DTE entry window (9:35 AM–11:00 AM).
 
         The scanner runs from 9:25 AM to gather open-range data and detect the
         Judas Swing fake move. Once the real directional impulse confirms (~9:35),
-        the engine posts one 0DTE setup per viable ticker during this 7-minute
-        window only. No new entries are generated after 9:42 AM.
+        the engine posts 0DTE setups per viable ticker throughout the extended
+        morning window (9:35–11:00 AM ET). No new entries are generated after 11:00 AM.
 
         V4 daily-bar setups are not gated by this check.
         In DEBUG mode the gate is bypassed so the dashboard stays populated.
@@ -168,8 +168,8 @@ class MarketScanner:
         if now.weekday() >= 5:  # Sat/Sun
             return False
         t = now.hour * 60 + now.minute
-        # 9:35 AM – 9:42 AM ET
-        return (9 * 60 + 35) <= t < (9 * 60 + 42)
+        # 9:35 AM – 11:00 AM ET
+        return (9 * 60 + 35) <= t < (11 * 60)
 
     async def scan_all_tickers(self):
         """Scan all watchlist tickers concurrently, plus daily V4 index ICT scan."""
