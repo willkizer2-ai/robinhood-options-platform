@@ -59,5 +59,5 @@ jobs:
         run: |
           vercel alias set "${{ steps.deploy.outputs.deploy_url }}" \
             robinhood-options.vercel.app \
-            --token "$VERCEL_TOKEN" --yes
+            --token "$VERCEL_TOKEN"
           echo "✓ robinhood-options.vercel.app → ${{ steps.deploy.outputs.deploy_url }}"
