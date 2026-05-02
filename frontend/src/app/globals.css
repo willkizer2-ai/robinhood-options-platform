@@ -2,33 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Market Cyclops — CSS custom properties ──────────────────────────────────
-   These mirror tailwind.config.ts tokens so both CSS and Tailwind classes
-   stay in sync. Update values in BOTH files when changing the color system.
+/* ── Market Cyclops — Heavenly Orange theme CSS custom properties ─────────────
+   Primary   : white       (#FFFAF5 warm-white backgrounds)
+   Secondary : light orange (#FF8C2A — accent, interactive, eye outline)
+   Tertiary  : burnt orange (#CC4500 — eye iris depth, strong highlights)
+   Keep in sync with tailwind.config.ts color tokens.
    ──────────────────────────────────────────────────────────────────────────── */
 :root {
   /* Surfaces */
-  --bg-base:        #080B0F;
-  --bg-card:        #0D1117;
-  --bg-elevated:    #111820;
+  --bg-base:        #FFFAF5;
+  --bg-card:        #FFF5EC;
+  --bg-elevated:    #FFEDD8;
   /* Borders */
-  --border-dim:     #1A2430;
-  --border-med:     #253045;
+  --border-dim:     #F0D0A8;
+  --border-med:     #E0A870;
   /* Text hierarchy */
-  --text-primary:   #CDD9E5;
-  --text-secondary: #7A8D9E;
-  --text-muted:     #3E5268;
-  /* Accent — neon green */
-  --blue-accent:    #00FF88;   /* token kept as "blue-accent" for code compat */
+  --text-primary:   #1A0A00;
+  --text-secondary: #5C3010;
+  --text-muted:     #9A5828;
+  /* Accent — light orange (secondary colour) */
+  --blue-accent:    #FF8C2A;   /* token kept as "blue-accent" for code compat */
   /* Directional */
-  --green-trade:    #22C55E;
-  --red-trade:      #EF4444;
+  --green-trade:    #16A34A;
+  --red-trade:      #DC2626;
   /* Alerts / states */
-  --yellow-alert:   #F59E0B;
-  --gold-trade:     #F59E0B;
-  --state-hold:     #F59E0B;
-  --state-profit:   #22C55E;
-  --state-exit:     #EF4444;
+  --yellow-alert:   #D97706;
+  --gold-trade:     #D97706;
+  --state-hold:     #D97706;
+  --state-profit:   #16A34A;
+  --state-exit:     #DC2626;
 }
 
 html {
@@ -36,28 +38,28 @@ html {
 }
 
 body {
-  background: #080B0F;
-  color: #CDD9E5;
+  background: #FFFAF5;
+  color: #1A0A00;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
     'Oxygen', 'Ubuntu', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Scrollbar — dark terminal style ─────────────────────────────────────── */
+/* ── Scrollbar — warm light style ─────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #253045 transparent;
+  scrollbar-color: #E0A870 transparent;
 }
 *::-webkit-scrollbar       { width: 4px; height: 4px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background: #253045;
+  background: #E0A870;
   border-radius: 2px;
 }
-*::-webkit-scrollbar-thumb:hover { background: #00FF88; }
+*::-webkit-scrollbar-thumb:hover { background: #FF8C2A; }
 
-/* ── Skeleton shimmer — dark theme ───────────────────────────────────────── */
+/* ── Skeleton shimmer — warm light theme ──────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
@@ -66,9 +68,9 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    #111820 25%,
-    #1A2430 50%,
-    #111820 75%
+    #FFE8CC 25%,
+    #FFD4A0 50%,
+    #FFE8CC 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -85,9 +87,9 @@ body {
 /* ── Smooth confidence bar fill ──────────────────────────────────────────── */
 .confidence-bar { transition: width 0.6s ease; }
 
-/* ── Scan-line sweep — horizontal pass top→bottom every 12 s ─────────────
+/* ── Scan-line sweep — horizontal orange pass top→bottom every 12 s ──────
    Tune: change animation-duration to adjust frequency.
-   Tune: change rgba opacity (0.08) to make more/less visible.
+   Tune: change rgba opacity (0.10) to make more/less visible.
    ──────────────────────────────────────────────────────────────────────────── */
 @keyframes scan-sweep {
   0%   { top: -2px;   opacity: 0;   }
@@ -102,14 +104,13 @@ body {
   right:    0;
   top:      -2px;
   height:   1px;
-  /* Gradient fades at edges so it doesn't look like a bar */
   background: linear-gradient(
     90deg,
-    transparent          0%,
-    rgba(0,255,136,0.08) 15%,
-    rgba(0,255,136,0.06) 50%,
-    rgba(0,255,136,0.08) 85%,
-    transparent          100%
+    transparent             0%,
+    rgba(255,140,42,0.10)  15%,
+    rgba(204, 69,  0,0.07) 50%,
+    rgba(255,140,42,0.10)  85%,
+    transparent            100%
   );
   z-index:        2;
   pointer-events: none;
@@ -121,10 +122,10 @@ body {
   .scan-line { animation: none; display: none; }
 }
 
-/* ── Glassmorphism utility ────────────────────────────────────────────────── */
+/* ── Glassmorphism utility — warm light version ──────────────────────────── */
 .mc-glass {
-  background:            rgba(13, 17, 23, 0.72);
-  backdrop-filter:       blur(12px);
+  background:              rgba(255, 250, 245, 0.80);
+  backdrop-filter:         blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border:                1px solid rgba(255, 255, 255, 0.05);
+  border:                  1px solid rgba(255, 140, 42, 0.18);
 }

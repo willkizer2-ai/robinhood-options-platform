@@ -3,13 +3,30 @@
 import { useEffect, useRef } from 'react';
 
 // ── Tune these constants ──────────────────────────────────────────────────────
-const ACCENT      = { r: 0, g: 255, b: 136 };  // neon green (RGB)
-const SPEED       = 0.28;   // scan speed — lower = slower pupil movement
-const EYE_OPACITY = 0.82;   // 0–1 eye visibility (0.5 = subtle, 1.0 = full)
+const ACCENT      = { r: 255, g: 140, b: 42  };  // light orange  (secondary colour)
+const BURNT       = { r: 180, g:  60, b:  0  };  // burnt orange  (tertiary colour)
+const EYE_OPACITY = 0.90;   // 0–1 eye visibility
 const TARGET_FPS  = 30;     // frame cap for performance
+const BLINK_CYCLE = 150;    // ticks between blinks  (5 s at 30 fps)
+const BLINK_CLOSE = 118;    // tick within cycle when eyelid starts closing
+//   close phase: ticks 118–132 (14 ticks = 0.47 s)
+//   open  phase: ticks 132–146 (14 ticks = 0.47 s)
+//   eye fully closed: ticks 132 only (instant snap)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Traces the almond eye-shape as a closed bezier path. Caller must beginPath() first. */
+/** Eight gaze positions the pupil cycles through between blinks */
+const GAZE_TARGETS = [
+  { x:  0.60, y:  0.00 },   // right
+  { x: -0.60, y:  0.00 },   // left
+  { x:  0.00, y: -0.45 },   // up
+  { x:  0.50, y:  0.35 },   // right-down
+  { x: -0.50, y: -0.35 },   // left-up
+  { x:  0.00, y:  0.00 },   // centre (rest)
+  { x:  0.55, y: -0.28 },   // right-up
+  { x: -0.55, y:  0.28 },   // left-down
+];
+
+/** Traces the almond eye-shape as a closed bezier path. */
 function traceLens(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number,
@@ -37,64 +54,108 @@ export default function CyclopsBackground() {
     let last = 0;
     const MS = 1000 / TARGET_FPS;
 
-    // Accent color helper
+    // ── Gaze state — persisted across frames ────────────────────────────────
+    let gazeX           = 0;   // current (lerped) pupil X
+    let gazeY           = 0;   // current (lerped) pupil Y
+    let targetGazeX     = 0;   // gaze destination X
+    let targetGazeY     = 0;   // gaze destination Y
+    let gazeInitialized = false;
+    let lastCycleIndex  = -1;
+
+    // Accent colour helpers
     const a = (op: number) =>
       `rgba(${ACCENT.r},${ACCENT.g},${ACCENT.b},${Math.min(Math.max(op, 0), 1)})`;
+    const b = (op: number) =>
+      `rgba(${BURNT.r},${BURNT.g},${BURNT.b},${Math.min(Math.max(op, 0), 1)})`;
 
-    // Wrap every draw call in try/catch — the background is decorative and must
-    // never crash the application.
     function renderFrame(t: number) {
       try {
         const w  = canvas.width;
         const h  = canvas.height;
-        // Skip draw if canvas has zero dimensions (can happen briefly on init)
         if (w < 2 || h < 2) return;
 
         const cx = w * 0.5;
         const cy = h * 0.5;
 
-        // Eye geometry — scales with viewport, capped for large screens
-        const hw     = Math.min(w * 0.32, 420);       // half-width of eye
-        const hh     = Math.max(hw * 0.38, 1);         // half-height
-        const irisR  = Math.max(hh * 0.82, 2);         // iris radius
-        const pupilR = Math.max(irisR * 0.36, 1);      // pupil radius
+        // Initialise gaze to canvas centre on first frame / after resize
+        if (!gazeInitialized) {
+          gazeX = cx; gazeY = cy;
+          targetGazeX = cx; targetGazeY = cy;
+          gazeInitialized = true;
+        }
 
-        // Pupil scan path: Lissajous figure-8 (two incommensurate frequencies)
-        const drift = (irisR - pupilR) * 0.55;
-        const px    = cx + Math.sin(t * 0.009)        * drift;
-        const py    = cy + Math.sin(t * 0.006 + 1.35) * drift * 0.50;
+        // Eye geometry
+        const hw     = Math.min(w * 0.32, 420);
+        const hh     = Math.max(hw * 0.38, 1);
+        const irisR  = Math.max(hh * 0.82, 2);
+        const pupilR = Math.max(irisR * 0.36, 1);
+        const drift  = (irisR - pupilR) * 0.70;   // max pupil travel radius
 
+        // ── Blink + gaze cycle (every BLINK_CYCLE ticks = 5 s) ──────────────
+        const phase      = t % BLINK_CYCLE;
+        const cycleIndex = Math.floor(t / BLINK_CYCLE);
+
+        // At the start of every new 5-second cycle, pick the next gaze target
+        if (cycleIndex !== lastCycleIndex) {
+          lastCycleIndex = cycleIndex;
+          const tgt = GAZE_TARGETS[cycleIndex % GAZE_TARGETS.length];
+          targetGazeX = cx + tgt.x * drift;
+          targetGazeY = cy + tgt.y * drift;
+        }
+
+        // Smooth lerp toward gaze target (snappy at start, slows to a hold)
+        gazeX += (targetGazeX - gazeX) * 0.10;
+        gazeY += (targetGazeY - gazeY) * 0.10;
+        const px = gazeX;
+        const py = gazeY;
+
+        // Blink eyelid factor: 1 = fully open, 0 = fully closed
+        const HALF_BLINK = (BLINK_CYCLE - BLINK_CLOSE) / 2; // 16 ticks each side
+        let blinkFactor = 1;
+        if (phase >= BLINK_CLOSE) {
+          const bp = phase - BLINK_CLOSE;
+          blinkFactor = bp < HALF_BLINK
+            ? 1 - bp / HALF_BLINK          // eyelid closing
+            : (bp - HALF_BLINK) / HALF_BLINK; // eyelid opening
+          blinkFactor = Math.max(0.01, blinkFactor);
+        }
+        const effHh = hh * blinkFactor;   // eye height collapses during blink
+
+        // ── Draw ────────────────────────────────────────────────────────────
         ctx.clearRect(0, 0, w, h);
 
-        // 1. Wide ambient halo that bleeds past the eyelids
-        const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, hw * 2.0 || 1);
-        halo.addColorStop(0,   a(0.18));
+        // 1. Wide warm ambient halo
+        const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, hw * 2.2 || 1);
+        halo.addColorStop(0,   a(0.16));
         halo.addColorStop(0.4, a(0.06));
         halo.addColorStop(1,   a(0));
         ctx.fillStyle = halo;
         ctx.fillRect(0, 0, w, h);
 
-        // 2. All eye internals drawn at EYE_OPACITY
         ctx.save();
         ctx.globalAlpha = EYE_OPACITY;
 
-        // 3. Clip drawing to the lens shape
+        // 2. Clip all internals to the lens shape (uses effHh for blink squint)
         ctx.save();
         ctx.beginPath();
-        traceLens(ctx, cx, cy, hw, hh);
+        traceLens(ctx, cx, cy, hw, effHh);
         ctx.clip();
 
-        // Sclera — deep navy, clearly distinct from the near-black page background
-        ctx.fillStyle = 'rgb(4, 13, 28)';
+        // Sclera — warm peach-cream gradient for depth
+        const scleraG = ctx.createRadialGradient(cx, cy, 0, cx, cy, hw);
+        scleraG.addColorStop(0,   'rgb(255, 248, 235)');
+        scleraG.addColorStop(0.6, 'rgb(255, 235, 210)');
+        scleraG.addColorStop(1,   'rgb(245, 215, 185)');
+        ctx.fillStyle = scleraG;
         ctx.fillRect(0, 0, w, h);
 
-        // Iris radial gradient: bright neon green at center, fading to dark edge
+        // Iris — gold centre → light orange → burnt orange → deep warm brown
         const ig = ctx.createRadialGradient(px, py, 0, px, py, irisR);
-        ig.addColorStop(0,    `rgb(0, 255, 136)`);
-        ig.addColorStop(0.25, `rgba(0, 210, 105, 0.92)`);
-        ig.addColorStop(0.55, `rgba(0, 130,  62, 0.72)`);
-        ig.addColorStop(0.85, `rgba(0,  55,  28, 0.40)`);
-        ig.addColorStop(1,    `rgba(0,  18,   9, 0.05)`);
+        ig.addColorStop(0,    'rgb(255, 210, 130)');   // warm gold centre
+        ig.addColorStop(0.20, 'rgb(255, 155,  55)');   // light orange
+        ig.addColorStop(0.50, 'rgb(200,  78,   8)');   // burnt orange
+        ig.addColorStop(0.80, 'rgb(130,  38,   4)');   // deep orange-brown
+        ig.addColorStop(1,    'rgba(70,  18,   0, 0.15)');
         ctx.fillStyle = ig;
         ctx.beginPath();
         ctx.arc(px, py, irisR, 0, Math.PI * 2);
@@ -104,23 +165,23 @@ export default function CyclopsBackground() {
         for (let i = 1; i <= 8; i++) {
           ctx.beginPath();
           ctx.arc(px, py, irisR * (i / 8), 0, Math.PI * 2);
-          ctx.strokeStyle = a(i % 4 === 0 ? 0.30 : 0.12);
+          ctx.strokeStyle = b(i % 4 === 0 ? 0.28 : 0.10);
           ctx.lineWidth   = i % 4 === 0 ? 1.0 : 0.5;
           ctx.stroke();
         }
 
-        // Iris fiber texture (radial lines like real stroma)
+        // Iris fiber texture (radial stroma lines)
         for (let i = 0; i < 36; i++) {
           const ang = (i / 36) * Math.PI * 2;
           ctx.beginPath();
           ctx.moveTo(px + Math.cos(ang) * irisR * 0.28, py + Math.sin(ang) * irisR * 0.28);
           ctx.lineTo(px + Math.cos(ang) * irisR * 0.96, py + Math.sin(ang) * irisR * 0.96);
-          ctx.strokeStyle = a(0.07);
+          ctx.strokeStyle = b(0.07);
           ctx.lineWidth   = 0.4;
           ctx.stroke();
         }
 
-        // Slow-rotating scan spokes — full rotation ~5 min at default SPEED
+        // Slow-rotating scan spokes
         const rot = t * 0.004;
         ctx.save();
         ctx.translate(px, py);
@@ -130,7 +191,7 @@ export default function CyclopsBackground() {
           ctx.beginPath();
           ctx.moveTo(Math.cos(ang) * irisR * 0.30, Math.sin(ang) * irisR * 0.30);
           ctx.lineTo(Math.cos(ang) * irisR * 0.94, Math.sin(ang) * irisR * 0.94);
-          ctx.strokeStyle = a(0.14);
+          ctx.strokeStyle = a(0.12);
           ctx.lineWidth   = 0.8;
           ctx.stroke();
         }
@@ -147,42 +208,42 @@ export default function CyclopsBackground() {
         ctx.fill();
 
         // Pupil core
-        ctx.fillStyle = 'rgb(0, 1, 3)';
+        ctx.fillStyle = 'rgb(10, 4, 0)';
         ctx.beginPath();
         ctx.arc(px, py, pupilR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Specular highlights (glass-like depth on pupil)
-        ctx.fillStyle = a(0.45);
+        // Specular highlights (glass-like depth)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.62)';
         ctx.beginPath();
-        ctx.arc(px - pupilR * 0.30, py - pupilR * 0.30, pupilR * 0.16, 0, Math.PI * 2);
+        ctx.arc(px - pupilR * 0.30, py - pupilR * 0.30, pupilR * 0.18, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = a(0.18);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
         ctx.beginPath();
-        ctx.arc(px + pupilR * 0.22, py + pupilR * 0.24, pupilR * 0.08, 0, Math.PI * 2);
+        ctx.arc(px + pupilR * 0.22, py + pupilR * 0.24, pupilR * 0.09, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore(); // end lens clip
 
-        // Eyelid edge stroke
+        // Eyelid edge stroke — light orange (secondary colour)
         ctx.beginPath();
-        traceLens(ctx, cx, cy, hw, hh);
-        ctx.strokeStyle = a(0.55);
-        ctx.lineWidth   = 2.0;
+        traceLens(ctx, cx, cy, hw, effHh);
+        ctx.strokeStyle = a(0.72);
+        ctx.lineWidth   = 2.5;
         ctx.stroke();
 
         // Outer glow halo around eyelids
         ctx.beginPath();
-        traceLens(ctx, cx, cy, hw * 1.05, hh * 1.14);
-        ctx.strokeStyle = a(0.15);
-        ctx.lineWidth   = 9;
+        traceLens(ctx, cx, cy, hw * 1.05, effHh * 1.14);
+        ctx.strokeStyle = a(0.20);
+        ctx.lineWidth   = 11;
         ctx.stroke();
 
-        // Pulsing iris glow (~6s breathe cycle)
+        // Pulsing iris glow (~6 s breathe cycle)
         const pulse = 1 + Math.sin(t * 0.008) * 0.07;
         const gr    = Math.max(irisR * 1.25 * pulse, irisR * 0.5 + 1);
         const gg    = ctx.createRadialGradient(px, py, irisR * 0.4, px, py, gr);
-        gg.addColorStop(0,   a(0.22));
+        gg.addColorStop(0,   a(0.20));
         gg.addColorStop(0.5, a(0.07));
         gg.addColorStop(1,   a(0));
         ctx.fillStyle = gg;
@@ -193,7 +254,7 @@ export default function CyclopsBackground() {
         ctx.restore(); // end globalAlpha
 
       } catch (err) {
-        // Canvas errors are non-fatal — background is decorative only
+        // Canvas errors are non-fatal — background is purely decorative
         if (process.env.NODE_ENV !== 'production') console.warn('[CyclopsBackground]', err);
       }
     }
@@ -201,15 +262,15 @@ export default function CyclopsBackground() {
     function resize() {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
+      gazeInitialized = false;   // re-centre gaze after resize
       renderFrame(tick);
     }
     resize();
     window.addEventListener('resize', resize);
 
-    // Always draw one static frame immediately (visible even if animation is off)
+    // Draw one static frame immediately (visible even without animation)
     renderFrame(0);
 
-    // Start animation loop unless user prefers reduced motion
     if (!prefersReduced) {
       const loop = (now: number) => {
         raf = requestAnimationFrame(loop);
@@ -236,8 +297,8 @@ export default function CyclopsBackground() {
         inset:         0,
         zIndex:        0,
         pointerEvents: 'none',
-        // CSS filter adds a green outer halo around all visible canvas pixels
-        filter: 'drop-shadow(0 0 40px rgba(0, 255, 136, 0.28))',
+        // Warm orange outer halo around all visible canvas pixels
+        filter: 'drop-shadow(0 0 50px rgba(255, 140, 42, 0.32))',
       }}
     />
   );

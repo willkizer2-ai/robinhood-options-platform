@@ -1,9 +1,10 @@
 import type { Config } from 'tailwindcss';
 
-// ── Market Cyclops color system ───────────────────────────────────────────────
-// Keep in sync with the CSS custom properties in globals.css.
-// "blue-accent" token name preserved so existing component code compiles
-// unchanged — the VALUE is now neon green.
+// ── Market Cyclops — Heavenly Orange color system ─────────────────────────────
+// Primary:   white    (#FFFAF5 warm-white backgrounds)
+// Secondary: light orange (#FF8C2A — the main accent, eye outline, interactive)
+// Tertiary:  burnt orange (#CC4500 — stronger highlights, eye iris depth)
+// Keep token names unchanged so all components compile without edits.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const config: Config = {
@@ -13,42 +14,44 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Surfaces ──────────────────────────────────────────────────────────
-        'bg-base':     '#080B0F',   // near-black page background
-        'bg-card':     '#0D1117',   // dark card surface
-        'bg-elevated': '#111820',   // raised block / inner section
-        // ── Borders ───────────────────────────────────────────────────────────
-        'border-dim':  '#1A2430',   // faintest divider
-        'border-med':  '#253045',   // standard border
-        // ── Text hierarchy ────────────────────────────────────────────────────
-        'text-primary':   '#CDD9E5', // primary text — off-white
-        'text-secondary': '#7A8D9E', // medium muted
-        'text-muted':     '#3E5268', // faintest labels
-        // ── Accent — neon green (Bloomberg terminal feel) ─────────────────────
-        'blue-accent': '#00FF88',   // kept as "blue-accent" for code compat
+        // ── Surfaces — warm white ─────────────────────────────────────────────
+        'bg-base':     '#FFFAF5',   // warm white page background
+        'bg-card':     '#FFF5EC',   // cream card surface
+        'bg-elevated': '#FFEDD8',   // light peach inner section
+        // ── Borders — warm tan/orange ─────────────────────────────────────────
+        'border-dim':  '#F0D0A8',   // softest warm border
+        'border-med':  '#E0A870',   // standard warm border
+        // ── Text — dark warm tones (readable on white) ────────────────────────
+        'text-primary':   '#1A0A00', // very dark warm brown
+        'text-secondary': '#5C3010', // medium warm brown
+        'text-muted':     '#9A5828', // lighter warm brown
+        // ── Accent — light orange (secondary colour) ──────────────────────────
+        'blue-accent': '#FF8C2A',   // token kept as "blue-accent" for code compat
         // ── Directional trade states ──────────────────────────────────────────
-        'green-trade': '#22C55E',   // profit / bullish
-        'red-trade':   '#EF4444',   // loss / bearish
+        'green-trade': '#16A34A',   // darker green (readable on white)
+        'red-trade':   '#DC2626',   // red — loss / bearish
         // ── Alerts & warnings ─────────────────────────────────────────────────
-        'yellow-alert': '#F59E0B',  // amber warning
-        'gold-trade':   '#F59E0B',  // golden-hour signal
-        'gold-glow':    '#FBBF24',  // lighter amber highlight
+        'yellow-alert': '#D97706',  // amber warning
+        'gold-trade':   '#D97706',  // golden-hour signal
+        'gold-glow':    '#F59E0B',  // lighter amber highlight
+        // ── Burnt orange (tertiary) ───────────────────────────────────────────
+        'burnt-orange': '#CC4500',  // tertiary — eye iris, strong accents
         // ── Contract action states ────────────────────────────────────────────
-        'state-hold':   '#F59E0B',  // amber  — holding position
-        'state-profit': '#22C55E',  // green  — took profit
-        'state-exit':   '#EF4444',  // red    — stopped out / exited
+        'state-hold':   '#D97706',
+        'state-profit': '#16A34A',
+        'state-exit':   '#DC2626',
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        // Dark-optimised shadows with subtle inner border highlight
-        'card':    '0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
-        'card-md': '0 4px 16px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05)',
-        'card-lg': '0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)',
-        // Neon accent glow — use sparingly on interactive highlights
-        'neon':    '0 0 12px rgba(0,255,136,0.20), 0 0 28px rgba(0,255,136,0.08)',
+        // Warm-light optimised shadows
+        'card':    '0 1px 3px rgba(100,50,0,0.08), 0 0 0 1px rgba(200,100,30,0.10)',
+        'card-md': '0 4px 16px rgba(100,50,0,0.12), 0 0 0 1px rgba(200,100,30,0.12)',
+        'card-lg': '0 8px 32px rgba(100,50,0,0.16), 0 0 0 1px rgba(200,100,30,0.14)',
+        // Orange accent glow
+        'neon':    '0 0 12px rgba(255,140,42,0.30), 0 0 28px rgba(255,140,42,0.12)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

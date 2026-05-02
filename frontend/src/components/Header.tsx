@@ -70,7 +70,7 @@ export default function Header() {
             {/* Eye icon — the Cyclops mark */}
             <div
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border border-blue-accent/30 bg-blue-accent/10"
-              style={{ boxShadow: '0 0 14px rgba(0,255,136,0.18)' }}
+              style={{ boxShadow: '0 0 14px rgba(255,140,42,0.22)' }}
             >
               <Eye className="h-5 w-5 text-blue-accent" />
             </div>
