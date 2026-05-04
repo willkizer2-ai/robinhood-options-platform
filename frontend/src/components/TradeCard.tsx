@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ChevronDown, ChevronUp,
   ArrowUpCircle, ArrowDownCircle,
@@ -157,21 +157,64 @@ function V4Pill({ label, passed }: { label: string; passed: boolean }) {
   );
 }
 
-// Live price — only shows the dollar price, no change % per user request
-function LivePrice({ ticker }: { ticker: string }) {
+// Live price — refreshes every 5 s, flashes on change, shows delta from entry
+function LivePrice({ ticker, detectionPrice }: { ticker: string; detectionPrice?: number }) {
   const { data, isLoading } = useTickerPrice(ticker);
+  const prevPriceRef = useRef<number | undefined>(undefined);
+  const [flash, setFlash] = useState<'up' | 'down' | null>(null);
+
+  useEffect(() => {
+    const current = data?.price;
+    if (current == null) return;
+    const prev = prevPriceRef.current;
+    if (prev != null && prev !== current) {
+      setFlash(current > prev ? 'up' : 'down');
+      const id = setTimeout(() => setFlash(null), 700);
+      prevPriceRef.current = current;
+      return () => clearTimeout(id);
+    }
+    prevPriceRef.current = current;
+  }, [data?.price]);
 
   if (isLoading && !data) {
-    return <div className="h-5 w-16 skeleton rounded" />;
+    return <div className="h-8 w-20 skeleton rounded" />;
   }
   if (!data?.price) return null;
 
+  const delta    = detectionPrice != null ? data.price - detectionPrice : null;
+  const deltaPct = detectionPrice != null && detectionPrice > 0
+    ? ((data.price - detectionPrice) / detectionPrice) * 100
+    : null;
+  const isUp = delta != null ? delta >= 0 : null;
+
   return (
-    <div className="flex items-center gap-1.5 flex-shrink-0">
-      <span className="live-dot h-1.5 w-1.5 rounded-full bg-green-trade flex-shrink-0" />
-      <span className="text-sm font-bold tabular-nums text-text-primary">
-        {formatCurrency(data.price)}
-      </span>
+    <div className={cn(
+      'flex flex-col items-end gap-0.5 flex-shrink-0 rounded px-1.5 py-0.5 transition-colors duration-300',
+      flash === 'up'   ? 'bg-green-trade/15'
+      : flash === 'down' ? 'bg-red-trade/15'
+      : 'bg-transparent'
+    )}>
+      {/* Price row */}
+      <div className="flex items-center gap-1.5">
+        <span className="live-dot h-1.5 w-1.5 rounded-full bg-green-trade flex-shrink-0" />
+        <span className={cn(
+          'text-sm font-bold tabular-nums transition-colors duration-150',
+          flash === 'up'   ? 'text-green-trade'
+          : flash === 'down' ? 'text-red-trade'
+          : 'text-text-primary'
+        )}>
+          {formatCurrency(data.price)}
+        </span>
+      </div>
+      {/* Delta row vs detection price */}
+      {delta != null && deltaPct != null && (
+        <span className={cn(
+          'text-[9px] font-semibold tabular-nums leading-none',
+          isUp ? 'text-green-trade' : 'text-red-trade'
+        )}>
+          {isUp ? '+' : ''}{formatCurrency(delta)} ({formatPct(deltaPct)})
+        </span>
+      )}
     </div>
   );
 }
@@ -371,8 +414,8 @@ export default function TradeCard({ trade }: { trade: TradeSetup }) {
             </div>
           </div>
 
-          {/* Live price */}
-          <LivePrice ticker={trade.ticker} />
+          {/* Live price — flashes on update, shows delta vs detection price */}
+          <LivePrice ticker={trade.ticker} detectionPrice={ctx.current_price} />
         </div>
 
         {/* ── Strategy + catalyst tags ── */}
