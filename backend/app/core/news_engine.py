@@ -404,7 +404,7 @@ class NewsIntelligenceEngine:
                 seen.add(key)
                 unique.append(item)
 
-        return unique if unique else self._mock_news()
+        return unique  # empty list is fine — no mock fallback
 
     async def _fetch_benzinga_news(self) -> List[NewsItem]:
         """Fetch from Benzinga Pro API — best for market-moving stock news.

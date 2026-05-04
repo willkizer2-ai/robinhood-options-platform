@@ -316,18 +316,12 @@ class MarketScanner:
     async def get_market_context(self, ticker: str) -> Optional[MarketContext]:
         """
         Fetch market context:
-        • DEBUG mode  → mock profile with REAL current price injected via fast_info.
-          The seeded mock ensures the decision engine always sees qualified setups
-          so the dashboard remains populated even before/after market hours.
-        • Production  → full yfinance real data (price + indicators),
-          then Polygon.io, then mock as last resort.
+        • Always uses real yfinance data (price + indicators).
+          DEBUG flag only controls time-gating (market hours / entry window),
+          never data authenticity. Mock context is never served in any mode.
+        • Falls back to Polygon.io if configured.
+        • Returns None (ticker skipped) when no real data is available.
         """
-        if settings.DEBUG:
-            # Run the (blocking) real-price fetch in a thread pool, then apply mock profile
-            return await asyncio.get_event_loop().run_in_executor(
-                None, self._mock_market_context, ticker
-            )
-
         # ── Try yfinance (real data, always available) ────────────────────────
         ctx = await self._yfinance_market_context(ticker)
         if ctx:

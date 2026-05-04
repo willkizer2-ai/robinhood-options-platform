@@ -27,7 +27,6 @@ export default function DashboardPage() {
   const v4Count        = (trades?.trades ?? []).filter(t => t.strategy?.startsWith('V4_')).length;
   const goldenCount    = (trades?.trades ?? []).filter(t => t.is_golden_hour).length;
 
-  // Show total news count (mock items shown with DEMO badge)
   const realNewsCount  = news?.total ?? (news?.items ?? []).length;
 
   const TABS = [
