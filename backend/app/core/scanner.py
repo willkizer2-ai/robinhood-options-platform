@@ -604,15 +604,17 @@ class MarketScanner:
 
     def _real_price(self, ticker: str) -> Optional[float]:
         """
-        Fetch only the current price via yfinance fast_info (lightweight, < 1 s).
-        Returns None on failure so caller can fall back to hardcoded estimate.
+        Fetch current price via yfinance. Tries fast_info first (fast),
+        then falls back to history() which works on weekends and after-hours.
+        Returns None only if both methods fail.
         """
         import math
         try:
             import yfinance as yf
             yfTicker = {"SPX": "^GSPC", "VIX": "^VIX",
                         "SQQQ": "SQQQ", "TQQQ": "TQQQ"}.get(ticker, ticker)
-            fi = yf.Ticker(yfTicker).fast_info
+            tk = yf.Ticker(yfTicker)
+            fi = tk.fast_info
             # FastInfo is NOT a dict — must use attribute access, not .get()
             for attr in ("last_price", "regular_market_price"):
                 try:
@@ -623,6 +625,12 @@ class MarketScanner:
                             return f
                 except (TypeError, ValueError):
                     continue
+            # Fallback: most-recent close from history (reliable on weekends)
+            hist = tk.history(period="5d")
+            if not hist.empty:
+                p = float(hist["Close"].iloc[-1])
+                if not math.isnan(p) and p > 0:
+                    return p
             return None
         except Exception:
             return None

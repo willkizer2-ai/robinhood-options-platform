@@ -50,9 +50,10 @@ async def get_ticker_price(ticker: str):
     try:
         import math
 
-        fi = yf.Ticker(key).fast_info
+        tk = yf.Ticker(key)
+        fi = tk.fast_info
 
-        # FastInfo is NOT a dict — use getattr; guard against NaN
+        # FastInfo is NOT a dict — use getattr; guard against NaN/None
         def _safe_attr(obj, *attrs):
             for a in attrs:
                 try:
@@ -66,10 +67,23 @@ async def get_ticker_price(ticker: str):
             return None
 
         price = _safe_attr(fi, "last_price", "regular_market_price")
+
+        # Fallback: use most-recent close from history (works on weekends + after-hours)
         if not price:
-            raise ValueError("No valid price from fast_info")
+            hist = tk.history(period="5d")
+            if not hist.empty:
+                price = float(hist["Close"].iloc[-1])
+
+        if not price:
+            raise ValueError("No valid price from fast_info or history")
 
         prev = _safe_attr(fi, "previous_close", "regular_market_previous_close")
+        # If fast_info gave no prev_close either, derive from history
+        if not prev:
+            hist = tk.history(period="5d")
+            if not hist.empty and len(hist) >= 2:
+                prev = float(hist["Close"].iloc[-2])
+
         chg     = round(price - prev, 2)        if prev else 0.0
         chg_pct = round((chg / prev) * 100, 2)  if prev else 0.0
 
