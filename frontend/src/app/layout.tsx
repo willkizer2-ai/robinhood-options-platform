@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Options Intelligence',
-  description: 'AI-powered options trading intelligence platform',
+  title: 'Market Cyclops',
+  description: 'Market intelligence platform — Will Kizer',
   icons: {
     icon: '/favicon.ico',
   },

@@ -150,12 +150,12 @@ class MarketScanner:
         return (9 * 60) <= t <= (16 * 60 + 30)
 
     def _in_entry_window(self) -> bool:
-        """True if current ET time is within the Judas Swing entry window (9:35–9:42 AM).
+        """True if current ET time is within the 0DTE entry window (9:35 AM–11:00 AM).
 
         The scanner runs from 9:25 AM to gather open-range data and detect the
         Judas Swing fake move. Once the real directional impulse confirms (~9:35),
-        the engine posts one 0DTE setup per viable ticker during this 7-minute
-        window only. No new entries are generated after 9:42 AM.
+        the engine posts 0DTE setups per viable ticker throughout the extended
+        morning window (9:35–11:00 AM ET). No new entries are generated after 11:00 AM.
 
         V4 daily-bar setups are not gated by this check.
         In DEBUG mode the gate is bypassed so the dashboard stays populated.
@@ -168,8 +168,8 @@ class MarketScanner:
         if now.weekday() >= 5:  # Sat/Sun
             return False
         t = now.hour * 60 + now.minute
-        # 9:35 AM – 9:42 AM ET
-        return (9 * 60 + 35) <= t < (9 * 60 + 42)
+        # 9:35 AM – 11:00 AM ET
+        return (9 * 60 + 35) <= t < (11 * 60)
 
     async def scan_all_tickers(self):
         """Scan all watchlist tickers concurrently, plus daily V4 index ICT scan."""
@@ -316,18 +316,12 @@ class MarketScanner:
     async def get_market_context(self, ticker: str) -> Optional[MarketContext]:
         """
         Fetch market context:
-        • DEBUG mode  → mock profile with REAL current price injected via fast_info.
-          The seeded mock ensures the decision engine always sees qualified setups
-          so the dashboard remains populated even before/after market hours.
-        • Production  → full yfinance real data (price + indicators),
-          then Polygon.io, then mock as last resort.
+        • Always uses real yfinance data (price + indicators).
+          DEBUG flag only controls time-gating (market hours / entry window),
+          never data authenticity. Mock context is never served in any mode.
+        • Falls back to Polygon.io if configured.
+        • Returns None (ticker skipped) when no real data is available.
         """
-        if settings.DEBUG:
-            # Run the (blocking) real-price fetch in a thread pool, then apply mock profile
-            return await asyncio.get_event_loop().run_in_executor(
-                None, self._mock_market_context, ticker
-            )
-
         # ── Try yfinance (real data, always available) ────────────────────────
         ctx = await self._yfinance_market_context(ticker)
         if ctx:
@@ -358,9 +352,11 @@ class MarketScanner:
             except Exception:
                 pass
 
-        # ── Last resort: seeded mock (prices will be stale but structure valid) ─
-        logger.warning(f"yfinance unavailable for {ticker}, using mock")
-        return self._mock_market_context(ticker)
+        # ── No real data available — return None rather than serving mock data ─
+        # Mock context is intentionally removed from the production path so the
+        # dashboard never shows fabricated prices or synthetic technical profiles.
+        logger.warning(f"yfinance unavailable for {ticker} — skipping (no mock fallback in production)")
+        return None
 
     # ── yfinance real-data fetcher ─────────────────────────────────────────────
 
@@ -389,8 +385,21 @@ class MarketScanner:
             tk   = yf.Ticker(yfTicker)
             info = tk.fast_info
 
-            current_price = (info.get("lastPrice") or
-                             info.get("regularMarketPrice") or 0.0)
+            # FastInfo is NOT a dict — use getattr, guard against NaN
+            def _safe(fi, *attrs):
+                import math
+                for a in attrs:
+                    try:
+                        v = getattr(fi, a, None)
+                        if v is not None:
+                            f = float(v)
+                            if not math.isnan(f) and f > 0:
+                                return f
+                    except (TypeError, ValueError):
+                        continue
+                return None
+
+            current_price = _safe(info, "last_price", "regular_market_price") or 0.0
             if not current_price or current_price <= 0:
                 return None
 
@@ -591,16 +600,34 @@ class MarketScanner:
 
     def _real_price(self, ticker: str) -> Optional[float]:
         """
-        Fetch only the current price via yfinance fast_info (lightweight, < 1 s).
-        Returns None on failure so caller can fall back to hardcoded estimate.
+        Fetch current price via yfinance. Tries fast_info first (fast),
+        then falls back to history() which works on weekends and after-hours.
+        Returns None only if both methods fail.
         """
+        import math
         try:
             import yfinance as yf
             yfTicker = {"SPX": "^GSPC", "VIX": "^VIX",
                         "SQQQ": "SQQQ", "TQQQ": "TQQQ"}.get(ticker, ticker)
-            fi = yf.Ticker(yfTicker).fast_info
-            p  = fi.get("lastPrice") or fi.get("regularMarketPrice")
-            return float(p) if p and p > 0 else None
+            tk = yf.Ticker(yfTicker)
+            fi = tk.fast_info
+            # FastInfo is NOT a dict — must use attribute access, not .get()
+            for attr in ("last_price", "regular_market_price"):
+                try:
+                    v = getattr(fi, attr, None)
+                    if v is not None:
+                        f = float(v)
+                        if not math.isnan(f) and f > 0:
+                            return f
+                except (TypeError, ValueError):
+                    continue
+            # Fallback: most-recent close from history (reliable on weekends)
+            hist = tk.history(period="5d")
+            if not hist.empty:
+                p = float(hist["Close"].iloc[-1])
+                if not math.isnan(p) and p > 0:
+                    return p
+            return None
         except Exception:
             return None
 
@@ -620,17 +647,18 @@ class MarketScanner:
         import random
         import hashlib
 
-        # ── Approximate current prices (April 2026) — used only when
-        #    yfinance fast_info fails for a ticker ─────────────────────────────
+        # ── Approximate current prices (May 2026) — last-resort fallback only
+        #    when BOTH yfinance fast_info AND _real_price() fail entirely.
+        #    These should never be needed in production; fix the yfinance call first.
         prices = {
-            "SPY": 540.00, "QQQ": 460.00, "AAPL": 210.00,
-            "TSLA": 395.00, "NVDA": 870.00, "MSFT": 395.00,
-            "META": 550.00, "AMD": 155.00, "AMZN": 215.00,
-            "GOOGL": 175.00, "NFLX": 1050.00, "COIN": 195.00,
-            "PLTR": 100.00, "SOFI": 16.50, "IWM": 190.00,
-            "XLF": 48.00, "XLE": 88.00, "RIVN": 12.00,
-            "MARA": 18.00, "SQQQ": 9.00, "TQQQ": 55.00,
-            "SPX": 5400.00, "VIX": 22.00,
+            "SPY": 557.00, "QQQ": 474.00, "AAPL": 208.00,
+            "TSLA": 285.00, "NVDA": 111.00, "MSFT": 432.00,
+            "META": 607.00, "AMD": 103.00, "AMZN": 204.00,
+            "GOOGL": 165.00, "NFLX": 1100.00, "COIN": 205.00,
+            "PLTR": 120.00, "SOFI": 14.00, "IWM": 198.00,
+            "XLF": 50.00, "XLE": 86.00, "RIVN": 13.00,
+            "MARA": 16.00, "SQQQ": 9.50, "TQQQ": 58.00,
+            "SPX": 5570.00, "VIX": 23.00,
         }
 
         # Include today's date in the seed so mock profiles rotate daily

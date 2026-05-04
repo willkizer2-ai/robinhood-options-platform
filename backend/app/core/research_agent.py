@@ -133,23 +133,22 @@ class OvernightResearchAgent:
 
                 direction = Direction.CALL if chg_5d >= 0 else Direction.PUT
 
-                # Catalyst strength: base 0.50 + momentum size + volume lift
-                strength = min(0.50 + abs(chg_5d) * 8 + max(vol_ratio - 1.0, 0) * 0.05, 0.95)
-                # Add a small daily jitter so repeated runs feel fresh
+                # Catalyst strength: base 0.50 + momentum size + volume lift (real data only)
                 strength = round(
-                    max(0.45, min(0.97, strength + rng.uniform(-0.04, 0.04))), 2
+                    min(max(0.50 + abs(chg_5d) * 8 + max(vol_ratio - 1.0, 0) * 0.05, 0.45), 0.97), 2
                 )
 
-                sentiment  = round(max(0.15, min(0.90, 0.5 + chg_5d * 3)), 2)
-                exp_vol    = round(0.20 + abs(chg_5d) * 2 + rng.uniform(0.0, 0.12), 2)
+                sentiment = round(max(0.15, min(0.90, 0.5 + chg_5d * 3)), 2)
+                exp_vol   = round(0.20 + abs(chg_5d) * 2, 2)  # derived from real price move only
                 direction_word = "bullish" if direction == Direction.CALL else "bearish"
 
-                catalyst_templates = [
-                    f"5-day momentum: {'+' if chg_5d >= 0 else ''}{chg_5d*100:.1f}% — trend aligned",
-                    f"Volume {vol_ratio:.1f}× average — elevated institutional activity",
-                    f"{sector} sector showing {direction_word} flow with price confirmation",
-                ]
-                catalyst = catalyst_templates[day_seed % len(catalyst_templates)]
+                # Pick catalyst description based on which signal is strongest
+                if vol_ratio >= 1.5:
+                    catalyst = f"Volume {vol_ratio:.1f}× average — elevated institutional activity"
+                elif abs(chg_5d) >= 0.03:
+                    catalyst = f"5-day momentum: {'+' if chg_5d >= 0 else ''}{chg_5d*100:.1f}% — trend aligned"
+                else:
+                    catalyst = f"{sector} sector showing {direction_word} flow with price confirmation"
 
                 risk_map = {0: "LOW", 1: "MEDIUM", 2: "HIGH"}
                 risk_level = risk_map[int(abs(chg_5d) * 100) % 3]
@@ -173,28 +172,10 @@ class OvernightResearchAgent:
                     risk_level=risk_level,
                 ))
 
-            except Exception:
-                # Fallback: date-seeded mock — still varies every day
-                direction = Direction.CALL if rng.random() > 0.38 else Direction.PUT
-                direction_word = "bullish" if direction == Direction.CALL else "bearish"
-                setups.append(ResearchSetup(
-                    ticker=ticker,
-                    direction=direction,
-                    catalyst=f"Technical momentum — {sector} sector confluence",
-                    catalyst_strength=round(rng.uniform(0.52, 0.88), 2),
-                    sentiment_score=round(rng.uniform(0.42, 0.78), 2),
-                    expected_volatility=round(rng.uniform(0.22, 0.58), 2),
-                    suggested_strategy=(
-                        Strategy.ZERO_DTE if ticker in {"SPY", "QQQ", "IWM"}
-                        else Strategy.MOMENTUM
-                    ),
-                    summary=(
-                        f"{company} showing {direction_word} technical setup. "
-                        f"Price action and volume confluence suggest opportunity. "
-                        f"Target clean entry in the 9:30–11 AM window."
-                    ),
-                    risk_level=rng.choice(["LOW", "MEDIUM", "HIGH"]),
-                ))
+            except Exception as exc:
+                # Skip ticker rather than inject synthetic data — authentic data only
+                logger.warning(f"Research data unavailable for {ticker}: {exc} — skipping (no mock fallback)")
+                continue
 
         return setups
 

@@ -108,7 +108,7 @@ export function useTickerCandles(ticker: string | null) {
 
 /**
  * Live underlying price — includes extended-hours data.
- * Refreshes every 30 s so each card shows a current quote.
+ * Refreshes every 5 s so each card shows a near-real-time quote.
  * SWR deduplicates requests for the same ticker across multiple cards.
  */
 export function useTickerPrice(ticker: string) {
@@ -116,7 +116,7 @@ export function useTickerPrice(ticker: string) {
     ticker ? `${BASE}/scanner/price/${ticker.toUpperCase()}` : null,
     fetcher,
     {
-      refreshInterval: 30_000,
+      refreshInterval: 5_000,
       revalidateOnFocus: true,
       keepPreviousData: true,
       // Don't throw on error — gracefully show stale or missing price

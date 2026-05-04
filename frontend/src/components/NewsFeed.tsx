@@ -18,7 +18,7 @@ function ImpactBadge({ impact }: { impact: NewsImpact }) {
   );
 }
 
-function NewsItemRow({ item, isMock }: { item: NewsItem; isMock?: boolean }) {
+function NewsItemRow({ item }: { item: NewsItem }) {
   return (
     <article className="border-b border-border-dim/40 pb-3 last:border-0 last:pb-0">
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -26,11 +26,6 @@ function NewsItemRow({ item, isMock }: { item: NewsItem; isMock?: boolean }) {
           <span className="text-[10px] font-semibold tracking-wider text-text-muted uppercase">
             {item.source}
           </span>
-          {isMock && (
-            <span className="rounded px-1 py-0.5 text-[8px] font-bold tracking-widest uppercase bg-text-muted/10 text-text-muted border border-border-dim">
-              DEMO
-            </span>
-          )}
         </div>
         <span className="flex-shrink-0 text-[10px] text-text-muted">{formatTime(item.published_at)}</span>
       </div>
@@ -117,7 +112,7 @@ export default function NewsFeed() {
     return true;
   });
 
-  const isMockItem = (item: NewsItem) => item.source === 'Mock News';
+  // All items are real — no mock fallback in production
 
   const highImpact = items.filter(i => i.impact === 'HIGH').length;
 
@@ -163,13 +158,13 @@ export default function NewsFeed() {
               <p className="text-sm font-medium text-text-primary mb-1">News engine starting…</p>
               <p className="text-xs text-text-muted max-w-xs leading-relaxed">
                 The news feed refreshes every 60 seconds. Add a free NewsAPI key in Render
-                for live articles — mock articles show automatically until then.
+                Live articles will appear here once the news engine fetches them.
               </p>
             </div>
           </div>
         ) : (
           items.map((item) => (
-            <NewsItemRow key={item.id} item={item} isMock={isMockItem(item)} />
+            <NewsItemRow key={item.id} item={item} />
           ))
         )}
       </div>

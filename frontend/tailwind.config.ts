@@ -1,5 +1,12 @@
 import type { Config } from 'tailwindcss';
 
+// ── Market Cyclops — Heavenly Orange color system ─────────────────────────────
+// Primary:   white    (#FFFAF5 warm-white backgrounds)
+// Secondary: light orange (#FF8C2A — the main accent, eye outline, interactive)
+// Tertiary:  burnt orange (#CC4500 — stronger highlights, eye iris depth)
+// Keep token names unchanged so all components compile without edits.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const config: Config = {
   content: [
     './src/**/*.{js,ts,jsx,tsx,mdx}',
@@ -7,42 +14,47 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Surfaces — JP Morgan light theme ──────────────────────────────
-        'bg-base':     '#F4F6F9',   // page background — cool off-white
-        'bg-card':     '#FFFFFF',   // card surface — pure white
-        'bg-elevated': '#EEF2F7',   // inner section / raised block
-        // ── Borders ───────────────────────────────────────────────────────
-        'border-dim':  '#E2E8F0',   // faintest divider
-        'border-med':  '#CBD5E1',   // standard border
-        // ── Text hierarchy ────────────────────────────────────────────────
-        'text-primary':   '#0F172A', // near-black (slate-900)
-        'text-secondary': '#475569', // medium gray (slate-600)
-        'text-muted':     '#94A3B8', // light gray (slate-400)
-        // ── Brand — JPMorgan Chase signature navy ─────────────────────────
-        'blue-accent': '#003087',   // JPM deep navy blue
-        // ── Directional ───────────────────────────────────────────────────
-        'green-trade': '#15692A',   // deep forest green
-        'red-trade':   '#B91C1C',   // deep red
-        // ── Warning & alerts ──────────────────────────────────────────────
-        'yellow-alert': '#92400E',  // dark amber
-        'gold-trade':   '#92400E',  // golden amber (Golden Hour)
-        'gold-glow':    '#B45309',  // lighter amber highlight
-        // ── Contract action states ────────────────────────────────────────
-        'state-hold':   '#B45309',  // amber  — holding position
-        'state-profit': '#15692A',  // green  — took profit
-        'state-exit':   '#B91C1C',  // red    — terminated / stopped out
+        // ── Surfaces — warm white ─────────────────────────────────────────────
+        'bg-base':     '#FFFAF5',   // warm white page background
+        'bg-card':     '#FFF5EC',   // cream card surface
+        'bg-elevated': '#FFEDD8',   // light peach inner section
+        // ── Borders — warm tan/orange ─────────────────────────────────────────
+        'border-dim':  '#F0D0A8',   // softest warm border
+        'border-med':  '#E0A870',   // standard warm border
+        // ── Text — dark warm tones (readable on white) ────────────────────────
+        'text-primary':   '#1A0A00', // very dark warm brown
+        'text-secondary': '#5C3010', // medium warm brown
+        'text-muted':     '#9A5828', // lighter warm brown
+        // ── Accent — light orange (secondary colour) ──────────────────────────
+        'blue-accent': '#FF8C2A',   // token kept as "blue-accent" for code compat
+        // ── Directional trade states ──────────────────────────────────────────
+        'green-trade': '#16A34A',   // darker green (readable on white)
+        'red-trade':   '#DC2626',   // red — loss / bearish
+        // ── Alerts & warnings ─────────────────────────────────────────────────
+        'yellow-alert': '#D97706',  // amber warning
+        'gold-trade':   '#D97706',  // golden-hour signal
+        'gold-glow':    '#F59E0B',  // lighter amber highlight
+        // ── Burnt orange (tertiary) ───────────────────────────────────────────
+        'burnt-orange': '#CC4500',  // tertiary — eye iris, strong accents
+        // ── Contract action states ────────────────────────────────────────────
+        'state-hold':   '#D97706',
+        'state-profit': '#16A34A',
+        'state-exit':   '#DC2626',
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        'card':    '0 1px 3px 0 rgba(15,23,42,0.07), 0 1px 2px -1px rgba(15,23,42,0.07)',
-        'card-md': '0 4px 6px -1px rgba(15,23,42,0.08), 0 2px 4px -2px rgba(15,23,42,0.08)',
-        'card-lg': '0 8px 16px -2px rgba(15,23,42,0.10), 0 4px 6px -4px rgba(15,23,42,0.08)',
+        // Warm-light optimised shadows
+        'card':    '0 1px 3px rgba(100,50,0,0.08), 0 0 0 1px rgba(200,100,30,0.10)',
+        'card-md': '0 4px 16px rgba(100,50,0,0.12), 0 0 0 1px rgba(200,100,30,0.12)',
+        'card-lg': '0 8px 32px rgba(100,50,0,0.16), 0 0 0 1px rgba(200,100,30,0.14)',
+        // Orange accent glow
+        'neon':    '0 0 12px rgba(255,140,42,0.30), 0 0 28px rgba(255,140,42,0.12)',
       },
       animation: {
-        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'blink':      'blink 1.2s step-start infinite',
       },
       keyframes: {

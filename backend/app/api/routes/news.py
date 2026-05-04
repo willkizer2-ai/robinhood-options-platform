@@ -12,6 +12,8 @@ async def get_news(
     limit: int = Query(50, ge=1, le=200),
 ):
     engine = request.app.state.news_engine
+    if engine is None:
+        raise HTTPException(503, "News engine is initializing — please retry in a moment")
     impact_filter = NewsImpact(impact) if impact else None
     items = engine.get_news(impact_filter=impact_filter, limit=limit)
     high_impact = sum(1 for i in items if i.impact == NewsImpact.HIGH)
