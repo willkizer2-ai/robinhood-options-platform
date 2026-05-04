@@ -389,8 +389,21 @@ class MarketScanner:
             tk   = yf.Ticker(yfTicker)
             info = tk.fast_info
 
-            current_price = (info.get("lastPrice") or
-                             info.get("regularMarketPrice") or 0.0)
+            # FastInfo is NOT a dict — use getattr, guard against NaN
+            def _safe(fi, *attrs):
+                import math
+                for a in attrs:
+                    try:
+                        v = getattr(fi, a, None)
+                        if v is not None:
+                            f = float(v)
+                            if not math.isnan(f) and f > 0:
+                                return f
+                    except (TypeError, ValueError):
+                        continue
+                return None
+
+            current_price = _safe(info, "last_price", "regular_market_price") or 0.0
             if not current_price or current_price <= 0:
                 return None
 
@@ -594,13 +607,23 @@ class MarketScanner:
         Fetch only the current price via yfinance fast_info (lightweight, < 1 s).
         Returns None on failure so caller can fall back to hardcoded estimate.
         """
+        import math
         try:
             import yfinance as yf
             yfTicker = {"SPX": "^GSPC", "VIX": "^VIX",
                         "SQQQ": "SQQQ", "TQQQ": "TQQQ"}.get(ticker, ticker)
             fi = yf.Ticker(yfTicker).fast_info
-            p  = fi.get("lastPrice") or fi.get("regularMarketPrice")
-            return float(p) if p and p > 0 else None
+            # FastInfo is NOT a dict — must use attribute access, not .get()
+            for attr in ("last_price", "regular_market_price"):
+                try:
+                    v = getattr(fi, attr, None)
+                    if v is not None:
+                        f = float(v)
+                        if not math.isnan(f) and f > 0:
+                            return f
+                except (TypeError, ValueError):
+                    continue
+            return None
         except Exception:
             return None
 
@@ -620,17 +643,18 @@ class MarketScanner:
         import random
         import hashlib
 
-        # ── Approximate current prices (April 2026) — used only when
-        #    yfinance fast_info fails for a ticker ─────────────────────────────
+        # ── Approximate current prices (May 2026) — last-resort fallback only
+        #    when BOTH yfinance fast_info AND _real_price() fail entirely.
+        #    These should never be needed in production; fix the yfinance call first.
         prices = {
-            "SPY": 540.00, "QQQ": 460.00, "AAPL": 210.00,
-            "TSLA": 395.00, "NVDA": 870.00, "MSFT": 395.00,
-            "META": 550.00, "AMD": 155.00, "AMZN": 215.00,
-            "GOOGL": 175.00, "NFLX": 1050.00, "COIN": 195.00,
-            "PLTR": 100.00, "SOFI": 16.50, "IWM": 190.00,
-            "XLF": 48.00, "XLE": 88.00, "RIVN": 12.00,
-            "MARA": 18.00, "SQQQ": 9.00, "TQQQ": 55.00,
-            "SPX": 5400.00, "VIX": 22.00,
+            "SPY": 557.00, "QQQ": 474.00, "AAPL": 208.00,
+            "TSLA": 285.00, "NVDA": 111.00, "MSFT": 432.00,
+            "META": 607.00, "AMD": 103.00, "AMZN": 204.00,
+            "GOOGL": 165.00, "NFLX": 1100.00, "COIN": 205.00,
+            "PLTR": 120.00, "SOFI": 14.00, "IWM": 198.00,
+            "XLF": 50.00, "XLE": 86.00, "RIVN": 13.00,
+            "MARA": 16.00, "SQQQ": 9.50, "TQQQ": 58.00,
+            "SPX": 5570.00, "VIX": 23.00,
         }
 
         # Include today's date in the seed so mock profiles rotate daily
