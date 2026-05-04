@@ -173,28 +173,10 @@ class OvernightResearchAgent:
                     risk_level=risk_level,
                 ))
 
-            except Exception:
-                # Fallback: date-seeded mock — still varies every day
-                direction = Direction.CALL if rng.random() > 0.38 else Direction.PUT
-                direction_word = "bullish" if direction == Direction.CALL else "bearish"
-                setups.append(ResearchSetup(
-                    ticker=ticker,
-                    direction=direction,
-                    catalyst=f"Technical momentum — {sector} sector confluence",
-                    catalyst_strength=round(rng.uniform(0.52, 0.88), 2),
-                    sentiment_score=round(rng.uniform(0.42, 0.78), 2),
-                    expected_volatility=round(rng.uniform(0.22, 0.58), 2),
-                    suggested_strategy=(
-                        Strategy.ZERO_DTE if ticker in {"SPY", "QQQ", "IWM"}
-                        else Strategy.MOMENTUM
-                    ),
-                    summary=(
-                        f"{company} showing {direction_word} technical setup. "
-                        f"Price action and volume confluence suggest opportunity. "
-                        f"Target clean entry in the 9:30–11 AM window."
-                    ),
-                    risk_level=rng.choice(["LOW", "MEDIUM", "HIGH"]),
-                ))
+            except Exception as exc:
+                # Skip ticker rather than inject synthetic data — authentic data only
+                logger.warning(f"Research data unavailable for {ticker}: {exc} — skipping (no mock fallback)")
+                continue
 
         return setups
 

@@ -1,15 +1,19 @@
 """
-Performance API — Historical Backtest Results
+Performance API — Hypothetical / Simulated Strategy Results
 
-Returns deterministic (seeded) backtested performance data for the two
+Returns deterministic Monte Carlo-simulated performance data for the two
 strategies powering the Options Intel platform.
 
-V4.1 ICT Index  : Jan 2022 – Apr 2026  |  75 % WR, 9.3× PF, 7-DTE index ETFs
-V2.1 0DTE Intra : Jan 2018 – Apr 2026  |  68 % WR, 4.2× PF, 0DTE large-caps
+NOTE: These results are SIMULATED, not backtested on real historical options
+prices. They are generated via seeded Monte Carlo simulation targeting the
+theoretical win-rate and profit-factor parameters derived from strategy rules.
+Results do not represent actual trading activity or real capital at risk.
 
-All data is backtested on historical options prices and is seeded so the
-chart never changes between page loads.  A disclaimer is embedded in the
-response to comply with standard financial disclosure requirements.
+V4.1 ICT Index  : Jan 2022 – present  |  75 % WR target, 9.3× PF target
+V2.1 0DTE Intra : Jan 2018 – present  |  68 % WR target, 4.2× PF target
+
+The seed is fixed so the chart is stable between page loads.
+A mandatory disclosure is embedded in the response payload.
 """
 
 import math
@@ -255,15 +259,14 @@ def _build_report() -> PerformanceReport:
     return PerformanceReport(
         generated_at=datetime.utcnow().isoformat() + "Z",
         disclaimer=(
-            "IMPORTANT DISCLOSURE: All performance figures shown are the result "
-            "of backtesting on historical options data and do not represent live "
-            "trading results. Past performance is not indicative of future results. "
+            "IMPORTANT DISCLOSURE: All performance figures shown are HYPOTHETICAL "
+            "and SIMULATED via Monte Carlo methods targeting theoretical strategy "
+            "parameters. They do NOT represent real backtesting on historical options "
+            "prices, live trading results, or actual capital deployed. "
+            "Past or simulated performance is not indicative of future results. "
             "Options trading involves substantial risk of loss and is not suitable "
-            "for all investors. Backtested results have inherent limitations "
-            "including survivorship bias, look-ahead bias, and the inability to "
-            "account for market impact, liquidity constraints, and slippage. "
-            "This platform is for educational and research purposes only and "
-            "does not constitute investment advice."
+            "for all investors. This platform is for educational and research "
+            "purposes only and does not constitute investment advice."
         ),
         strategies=[v4, v21],
     )

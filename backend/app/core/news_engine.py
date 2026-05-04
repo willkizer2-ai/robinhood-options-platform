@@ -391,7 +391,9 @@ class NewsIntelligenceEngine:
             all_items.extend(items)
 
         if not any_key:
-            return self._mock_news()
+            # No API keys configured — return empty rather than fabricated headlines
+            logger.warning("No news API keys configured — returning empty news feed (no mock fallback)")
+            return []
 
         # Deduplicate by normalized headline prefix (first 60 chars)
         seen: set = set()

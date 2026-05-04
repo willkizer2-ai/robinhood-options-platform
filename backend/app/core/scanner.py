@@ -358,9 +358,11 @@ class MarketScanner:
             except Exception:
                 pass
 
-        # ── Last resort: seeded mock (prices will be stale but structure valid) ─
-        logger.warning(f"yfinance unavailable for {ticker}, using mock")
-        return self._mock_market_context(ticker)
+        # ── No real data available — return None rather than serving mock data ─
+        # Mock context is intentionally removed from the production path so the
+        # dashboard never shows fabricated prices or synthetic technical profiles.
+        logger.warning(f"yfinance unavailable for {ticker} — skipping (no mock fallback in production)")
+        return None
 
     # ── yfinance real-data fetcher ─────────────────────────────────────────────
 
