@@ -201,7 +201,7 @@ function LivePrice({ ticker, detectionPrice }: { ticker: string; detectionPrice?
           'text-sm font-bold tabular-nums transition-colors duration-150',
           flash === 'up'   ? 'text-green-trade'
           : flash === 'down' ? 'text-red-trade'
-          : 'text-text-primary'
+          : 'text-black'
         )}>
           {formatCurrency(data.price)}
         </span>
@@ -209,8 +209,8 @@ function LivePrice({ ticker, detectionPrice }: { ticker: string; detectionPrice?
       {/* Delta row vs detection price */}
       {delta != null && deltaPct != null && (
         <span className={cn(
-          'text-[9px] font-semibold tabular-nums leading-none',
-          isUp ? 'text-green-trade' : 'text-red-trade'
+          'text-[9px] font-bold tabular-nums leading-none',
+          isUp ? 'text-green-600' : 'text-red-600'
         )}>
           {isUp ? '+' : ''}{formatCurrency(delta)} ({formatPct(deltaPct)})
         </span>
