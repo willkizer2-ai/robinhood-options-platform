@@ -150,12 +150,11 @@ class MarketScanner:
         return (9 * 60) <= t <= (16 * 60 + 30)
 
     def _in_entry_window(self) -> bool:
-        """True if current ET time is within the 0DTE entry window (9:35 AM–11:00 AM).
+        """True if current ET time is within the 0DTE entry window (9:30 AM–11:00 AM).
 
-        The scanner runs from 9:25 AM to gather open-range data and detect the
-        Judas Swing fake move. Once the real directional impulse confirms (~9:35),
-        the engine posts 0DTE setups per viable ticker throughout the extended
-        morning window (9:35–11:00 AM ET). No new entries are generated after 11:00 AM.
+        The scanner begins posting 0DTE setups at market open (9:30 AM ET) and
+        stops accepting new entries at 11:00 AM ET.  Existing cards posted during
+        this window remain visible on the dashboard until 4:30 PM ET.
 
         V4 daily-bar setups are not gated by this check.
         In DEBUG mode the gate is bypassed so the dashboard stays populated.
@@ -168,8 +167,8 @@ class MarketScanner:
         if now.weekday() >= 5:  # Sat/Sun
             return False
         t = now.hour * 60 + now.minute
-        # 9:35 AM – 11:00 AM ET
-        return (9 * 60 + 35) <= t < (11 * 60)
+        # 9:30 AM – 11:00 AM ET
+        return (9 * 60 + 30) <= t < (11 * 60)
 
     async def scan_all_tickers(self):
         """Scan all watchlist tickers concurrently, plus daily V4 index ICT scan."""
@@ -480,6 +479,42 @@ class MarketScanner:
             rough_prem         = max(proj_intrin * 0.55 + current_price * 0.003, 0.10)
             expected_move_edge = round((proj_intrin / rough_prem) - 1.0, 3)
 
+            # ── Intraday override (active market hours only) ──────────────────────
+            # During the 9:30-11:00 AM entry window the daily-bar volume for today
+            # is a tiny partial-day figure (5-90 min of trading) that consistently
+            # produces volume_ratio << 1.0 and fails the ≥2.0 gate.  Pull 5-minute
+            # intraday bars and replace volume_ratio with a time-normalised figure
+            # (today's accumulated vol ÷ expected vol at this time of day).
+            # Also replace the (H+L+C)/3 VWAP proxy with true cumulative intraday VWAP.
+            try:
+                import pytz as _ptz
+                _et     = _ptz.timezone("America/New_York")
+                _now_et = datetime.now(_et)
+                _t_min  = _now_et.hour * 60 + _now_et.minute
+                # Only run during regular session on weekdays
+                if _now_et.weekday() < 5 and _t_min >= 9 * 60 + 30:
+                    intraday = tk.history(period="1d", interval="5m")
+                    if not intraday.empty and len(intraday) >= 2:
+                        # True cumulative VWAP from session open
+                        tp_intra = (intraday["High"] + intraday["Low"] + intraday["Close"]) / 3
+                        cum_vol  = intraday["Volume"].cumsum()
+                        cum_tpv  = (tp_intra * intraday["Volume"]).cumsum()
+                        if float(cum_vol.iloc[-1]) > 0:
+                            vwap          = round(float(cum_tpv.iloc[-1] / cum_vol.iloc[-1]), 2)
+                            price_vs_vwap = round((current_price - vwap) / vwap * 100, 2)
+
+                        # Time-normalised volume ratio:
+                        # ratio = (volume traded so far today) / (expected volume by now)
+                        # expected = 20-day avg daily vol × (elapsed minutes / 390)
+                        elapsed_min = _t_min - (9 * 60 + 30)  # minutes since 9:30 AM open
+                        if elapsed_min >= 1 and avg_vol_20d > 0:
+                            expected_frac = min(elapsed_min / 390.0, 1.0)
+                            intra_vol     = int(intraday["Volume"].sum())
+                            volume_ratio  = round(intra_vol / (avg_vol_20d * expected_frac), 2)
+                            today_vol     = intra_vol
+            except Exception:
+                pass  # fall back to daily-bar estimates already computed above
+
             return MarketContext(
                 ticker=ticker,
                 current_price=round(float(current_price), 2),
@@ -527,7 +562,18 @@ class MarketScanner:
 
     @staticmethod
     def _macd_signal(closes: "np.ndarray") -> str:
-        """Returns 'bullish_cross', 'bearish_cross', or 'neutral'."""
+        """
+        Returns the current MACD position relative to its signal line.
+          'bullish_cross' = MACD is above the signal line (bullish regime)
+          'bearish_cross' = MACD is below the signal line (bearish regime)
+          'neutral'       = insufficient data
+
+        Direction-based detection (not a single-bar crossover check) gives a
+        stable trend-regime reading on daily bars.  A crossover on daily data
+        happens ~1-2× per month per ticker; using direction lets the scanner
+        confirm the prevailing regime on every scan without being blocked by
+        the rarity of exact-cross timing.
+        """
         import numpy as np
         def ema(arr, n):
             k = 2 / (n + 1)
@@ -537,15 +583,14 @@ class MarketScanner:
             return np.array(e)
         if len(closes) < 35:
             return "neutral"
-        ema12   = ema(closes, 12)
-        ema26   = ema(closes, 26)
-        macd    = ema12 - ema26
-        signal  = ema(macd, 9)
-        diff_now  = macd[-1]  - signal[-1]
-        diff_prev = macd[-2]  - signal[-2]
-        if diff_prev <= 0 < diff_now:
+        ema12  = ema(closes, 12)
+        ema26  = ema(closes, 26)
+        macd   = ema12 - ema26
+        signal = ema(macd, 9)
+        diff   = float(macd[-1] - signal[-1])
+        if diff > 0:
             return "bullish_cross"
-        if diff_prev >= 0 > diff_now:
+        elif diff < 0:
             return "bearish_cross"
         return "neutral"
 
