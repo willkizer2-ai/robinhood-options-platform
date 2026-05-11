@@ -3,7 +3,6 @@
 Identifies and structures zero day-to-expiration options setups.
 These are the highest-probability, highest-reward intraday setups.
 """
-import random
 import uuid
 import logging
 from datetime import datetime, date, timedelta
@@ -223,9 +222,9 @@ class ZeroDTEStrategy:
             contract_type=direction,
             premium=premium,
             delta=delta,
-            implied_volatility=round(random.uniform(0.25, 0.85), 2),
-            volume=random.randint(200, 5000),
-            open_interest=random.randint(500, 15000),
+            implied_volatility=None,
+            volume=None,
+            open_interest=None,
             bid=bid,
             ask=ask,
             contract_symbol=symbol,

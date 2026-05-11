@@ -150,12 +150,11 @@ class MarketScanner:
         return (9 * 60) <= t <= (16 * 60 + 30)
 
     def _in_entry_window(self) -> bool:
-        """True if current ET time is within the 0DTE entry window (9:35 AM–11:00 AM).
+        """True if current ET time is within the 0DTE entry window (9:30 AM–11:00 AM).
 
-        The scanner runs from 9:25 AM to gather open-range data and detect the
-        Judas Swing fake move. Once the real directional impulse confirms (~9:35),
-        the engine posts 0DTE setups per viable ticker throughout the extended
-        morning window (9:35–11:00 AM ET). No new entries are generated after 11:00 AM.
+        The scanner begins posting 0DTE setups at market open (9:30 AM ET) and
+        stops accepting new entries at 11:00 AM ET.  Existing cards posted during
+        this window remain visible on the dashboard until 4:30 PM ET.
 
         V4 daily-bar setups are not gated by this check.
         In DEBUG mode the gate is bypassed so the dashboard stays populated.
@@ -168,8 +167,8 @@ class MarketScanner:
         if now.weekday() >= 5:  # Sat/Sun
             return False
         t = now.hour * 60 + now.minute
-        # 9:35 AM – 11:00 AM ET
-        return (9 * 60 + 35) <= t < (11 * 60)
+        # 9:30 AM – 11:00 AM ET
+        return (9 * 60 + 30) <= t < (11 * 60)
 
     async def scan_all_tickers(self):
         """Scan all watchlist tickers concurrently, plus daily V4 index ICT scan."""
@@ -480,6 +479,42 @@ class MarketScanner:
             rough_prem         = max(proj_intrin * 0.55 + current_price * 0.003, 0.10)
             expected_move_edge = round((proj_intrin / rough_prem) - 1.0, 3)
 
+            # ── Intraday override (active market hours only) ──────────────────────
+            # During the 9:30-11:00 AM entry window the daily-bar volume for today
+            # is a tiny partial-day figure (5-90 min of trading) that consistently
+            # produces volume_ratio << 1.0 and fails the >=2.0 gate.  Pull 5-minute
+            # intraday bars and replace volume_ratio with a time-normalised figure
+            # (today's accumulated vol / expected vol at this time of day).
+            # Also replaces the (H+L+C)/3 VWAP proxy with true cumulative intraday VWAP.
+            try:
+                import pytz as _ptz
+                _et     = _ptz.timezone("America/New_York")
+                _now_et = datetime.now(_et)
+                _t_min  = _now_et.hour * 60 + _now_et.minute
+                # Only run during regular session on weekdays
+                if _now_et.weekday() < 5 and _t_min >= 9 * 60 + 30:
+                    intraday = tk.history(period="1d", interval="5m")
+                    if not intraday.empty and len(intraday) >= 2:
+                        # True cumulative VWAP from session open
+                        tp_intra = (intraday["High"] + intraday["Low"] + intraday["Close"]) / 3
+                        cum_vol  = intraday["Volume"].cumsum()
+                        cum_tpv  = (tp_intra * intraday["Volume"]).cumsum()
+                        if float(cum_vol.iloc[-1]) > 0:
+                            vwap          = round(float(cum_tpv.iloc[-1] / cum_vol.iloc[-1]), 2)
+                            price_vs_vwap = round((current_price - vwap) / vwap * 100, 2)
+
+                        # Time-normalised volume ratio:
+                        # ratio = (volume traded so far today) / (expected volume by now)
+                        # expected = 20-day avg daily vol x (elapsed minutes / 390)
+                        elapsed_min = _t_min - (9 * 60 + 30)  # minutes since 9:30 AM open
+                        if elapsed_min >= 1 and avg_vol_20d > 0:
+                            expected_frac = min(elapsed_min / 390.0, 1.0)
+                            intra_vol     = int(intraday["Volume"].sum())
+                            volume_ratio  = round(intra_vol / (avg_vol_20d * expected_frac), 2)
+                            today_vol     = intra_vol
+            except Exception:
+                pass  # fall back to daily-bar estimates already computed above
+
             return MarketContext(
                 ticker=ticker,
                 current_price=round(float(current_price), 2),
@@ -527,7 +562,18 @@ class MarketScanner:
 
     @staticmethod
     def _macd_signal(closes: "np.ndarray") -> str:
-        """Returns 'bullish_cross', 'bearish_cross', or 'neutral'."""
+        """
+        Returns the current MACD position relative to its signal line.
+          'bullish_cross' = MACD is above the signal line (bullish regime)
+          'bearish_cross' = MACD is below the signal line (bearish regime)
+          'neutral'       = insufficient data
+
+        Direction-based detection (not a single-bar crossover check) gives a
+        stable trend-regime reading on daily bars.  A crossover on daily data
+        happens ~1-2x per month per ticker; using direction lets the scanner
+        confirm the prevailing regime on every scan without being blocked by
+        the rarity of exact-cross timing.
+        """
         import numpy as np
         def ema(arr, n):
             k = 2 / (n + 1)
@@ -537,15 +583,14 @@ class MarketScanner:
             return np.array(e)
         if len(closes) < 35:
             return "neutral"
-        ema12   = ema(closes, 12)
-        ema26   = ema(closes, 26)
-        macd    = ema12 - ema26
-        signal  = ema(macd, 9)
-        diff_now  = macd[-1]  - signal[-1]
-        diff_prev = macd[-2]  - signal[-2]
-        if diff_prev <= 0 < diff_now:
+        ema12  = ema(closes, 12)
+        ema26  = ema(closes, 26)
+        macd   = ema12 - ema26
+        signal = ema(macd, 9)
+        diff   = float(macd[-1] - signal[-1])
+        if diff > 0:
             return "bullish_cross"
-        if diff_prev >= 0 > diff_now:
+        elif diff < 0:
             return "bearish_cross"
         return "neutral"
 
@@ -630,129 +675,6 @@ class MarketScanner:
             return None
         except Exception:
             return None
-
-    def _mock_market_context(self, ticker: str) -> MarketContext:
-        """
-        Development / fallback context.
-        Pulls REAL current price from yfinance fast_info (one quick call),
-        then overlays a deterministic seeded technical profile so the
-        dashboard always shows plausible, actionable callouts.
-
-        Profile breakdown (seed % 4):
-          0 = Golden Hour CALL  — all 6 V2.1 gates pass
-          1 = Golden Hour PUT   — all 6 V2.1 gates pass
-          2 = Normal DO_TAKE    — passes most basic gates
-          3 = Weak / filtered   — fails multiple gates
-        """
-        import random
-        import hashlib
-
-        # ── Approximate current prices (May 2026) — last-resort fallback only
-        #    when BOTH yfinance fast_info AND _real_price() fail entirely.
-        #    These should never be needed in production; fix the yfinance call first.
-        prices = {
-            "SPY": 557.00, "QQQ": 474.00, "AAPL": 208.00,
-            "TSLA": 285.00, "NVDA": 111.00, "MSFT": 432.00,
-            "META": 607.00, "AMD": 103.00, "AMZN": 204.00,
-            "GOOGL": 165.00, "NFLX": 1100.00, "COIN": 205.00,
-            "PLTR": 120.00, "SOFI": 14.00, "IWM": 198.00,
-            "XLF": 50.00, "XLE": 86.00, "RIVN": 13.00,
-            "MARA": 16.00, "SQQQ": 9.50, "TQQQ": 58.00,
-            "SPX": 5570.00, "VIX": 23.00,
-        }
-
-        # Include today's date in the seed so mock profiles rotate daily
-        seed = int(hashlib.md5(f"{ticker}_{date.today().isoformat()}".encode()).hexdigest()[:8], 16)
-        rng  = random.Random(seed)
-
-        # Prefer real price; fall back to hardcoded estimate
-        real_p     = self._real_price(ticker)
-        base_price = real_p if real_p else prices.get(ticker, 100.0)
-
-        # Small intraday noise on the real price
-        price = base_price * (1 + rng.uniform(-0.008, 0.008))
-
-        # 4 profiles (seed % 4)
-        # 0 = Golden Hour CALL   — all 6 V2.1 gates pass
-        # 1 = Golden Hour PUT    — all 6 V2.1 gates pass
-        # 2 = Normal momentum    — passes most basic gates, not all V2.1
-        # 3 = Weak/reversal      — fails multiple gates
-        profile = seed % 4
-
-        if profile == 0:
-            volume_ratio  = rng.uniform(2.2, 3.2)
-            rsi           = rng.uniform(50, 63)
-            macd          = "bullish_cross"
-            structure     = "uptrend"
-            vwap          = price * rng.uniform(0.986, 0.995)
-            adx           = rng.uniform(24, 38)
-            iv_rank       = rng.uniform(0.28, 0.54)
-            orb_confirmed = True
-        elif profile == 1:
-            volume_ratio  = rng.uniform(2.2, 3.2)
-            rsi           = rng.uniform(37, 50)
-            macd          = "bearish_cross"
-            structure     = "downtrend"
-            vwap          = price * rng.uniform(1.005, 1.014)
-            adx           = rng.uniform(24, 38)
-            iv_rank       = rng.uniform(0.28, 0.54)
-            orb_confirmed = True
-        elif profile == 2:
-            volume_ratio  = rng.uniform(1.7, 2.3)
-            rsi           = rng.uniform(48, 65)
-            macd          = rng.choice(["bullish_cross", "neutral"])
-            structure     = rng.choice(["uptrend", "neutral"])
-            vwap          = price * rng.uniform(0.993, 1.002)
-            adx           = rng.uniform(17, 26)
-            iv_rank       = rng.uniform(0.45, 0.72)
-            orb_confirmed = rng.choice([True, False])
-        else:
-            volume_ratio  = rng.uniform(1.3, 2.0)
-            rsi           = rng.uniform(68, 78)
-            macd          = rng.choice(["bearish_cross", "neutral"])
-            structure     = rng.choice(["uptrend", "neutral"])
-            vwap          = price * rng.uniform(0.995, 1.005)
-            adx           = rng.uniform(12, 21)
-            iv_rank       = rng.uniform(0.58, 0.82)
-            orb_confirmed = False
-
-        volume        = int(volume_ratio * 1_200_000 * rng.uniform(0.9, 1.1))
-        price_vs_vwap = round((price - vwap) / vwap * 100, 2)
-
-        # ATR: ~1.5-2.5% of price (realistic 14-day daily range)
-        atr = round(price * rng.uniform(0.015, 0.025), 2)
-
-        # Expected move edge: if stock moves by 1 ATR in signal direction,
-        # project option intrinsic vs estimated premium
-        inc = 5.0 if price >= 500 else 1.0 if price >= 100 else 0.5
-        if structure == "uptrend":
-            strike_est    = round(round(price * 1.005 / inc) * inc, 2)
-            proj_intrin   = max(price + atr - strike_est, 0.0)
-        else:
-            strike_est    = round(round(price * 0.995 / inc) * inc, 2)
-            proj_intrin   = max(strike_est - (price - atr), 0.0)
-        rough_prem        = max(proj_intrin * 0.55 + price * 0.003, 0.10)
-        expected_move_edge = round((proj_intrin / rough_prem) - 1.0, 3)
-
-        return MarketContext(
-            ticker=ticker,
-            current_price=round(price, 2),
-            vwap=round(vwap, 2),
-            volume=volume,
-            avg_volume=1_200_000,
-            volume_ratio=round(volume_ratio, 2),
-            price_vs_vwap=price_vs_vwap,
-            rsi_14=round(rsi, 1),
-            macd_signal=macd,
-            market_structure=structure,
-            support_level=round(price * 0.98, 2),
-            resistance_level=round(price * 1.02, 2),
-            adx_14=round(adx, 1),
-            iv_rank=round(iv_rank, 3),
-            atr=atr,
-            orb_confirmed=orb_confirmed,
-            expected_move_edge=expected_move_edge,
-        )
 
     def _build_execution_instructions(
         self, setup: TradeSetup, ctx: MarketContext

@@ -567,30 +567,6 @@ class NewsIntelligenceEngine:
             logger.warning(f"NewsAPI fetch error: {e}")
             return []
 
-    def _mock_news(self) -> List[NewsItem]:
-        """Realistic mock news for development."""
-        mock_headlines = [
-            ("AAPL", "Apple beats Q1 earnings estimates by 12%, raises full-year guidance"),
-            ("NVDA", "NVIDIA reports record data center revenue, stock surges in after-hours"),
-            ("TSLA", "Tesla misses delivery estimates for Q4, raises concerns about demand"),
-            ("META", "Meta Platforms upgrade to Buy at Goldman Sachs, price target raised to $650"),
-            ("SPY", "Fed signals two rate cuts in 2025, markets rally sharply"),
-            ("QQQ", "CPI data comes in below expectations at 2.8%, tech stocks pop"),
-            ("AMD", "AMD announces new AI chip partnership with Microsoft, shares jump 8%"),
-            ("MSFT", "Microsoft Azure growth accelerates to 33%, beating consensus estimates"),
-        ]
-        items = []
-        for ticker, headline in mock_headlines:
-            items.append(NewsItem(
-                id=str(uuid.uuid4()),
-                source="Mock News",
-                headline=headline,
-                url=f"https://example.com/news/{ticker.lower()}",
-                published_at=datetime.utcnow(),
-                related_tickers=[ticker],
-            ))
-        return items
-
     def _classify_impact(self, nlp: NLPAnalysis) -> NewsImpact:
         if nlp.impact_score >= 7:
             return NewsImpact.HIGH
