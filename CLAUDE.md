@@ -91,6 +91,42 @@ Never commit with `DEBUG=true`. Never commit mock-data code paths.
 
 ---
 
+## RULE 6 — No mock data anywhere — failed fetches return empty, never fake
+
+**Every data path on the site must return real data or nothing at all.**
+
+### What is forbidden
+| Pattern | Example | Required fix |
+|---------|---------|-------------|
+| Hardcoded fallback strings | Rotating macro context text when SPY fails | Return `""` |
+| Hardcoded fallback lists | Fake economic event pool | Return `[]` |
+| Simulated / Monte Carlo results | Seeded-random "backtest" performance | Return `strategies: []` |
+| `random.uniform` / `random.randint` | Synthetic IV, volume, open interest | Set field to `None` |
+| `rng.gauss` / `rng.random` in response paths | Monte Carlo equity curve | Remove entirely |
+| `random.Random(day_seed)` used in API responses | Date-seeded fake data | Remove; skip ticker instead |
+
+### The rule in plain English
+- If yfinance (or any external API) fails → **skip the ticker / return empty**.
+- If a field has no real value → set it to `None`, not a random number.
+- If an endpoint has no real data source yet → return an empty payload with a plain message.
+- **Never** rotate through hardcoded text to simulate variety.
+
+### Files cleaned under this rule (do not re-introduce)
+| File | What was removed |
+|------|-----------------|
+| `backend/app/core/research_agent.py` | `_get_macro_context()` hardcoded context list; `_get_key_events_tomorrow()` fake event pool; `import random` |
+| `backend/app/api/routes/performance.py` | Entire `_simulate()` Monte Carlo function; `_build_report()` seeded backtest; `import random` |
+| `backend/app/core/dte_strategy.py` | `random.uniform` IV; `random.randint` volume + open_interest |
+| `backend/app/core/news_engine.py` | `_mock_news()` fake headlines |
+
+### Current empty-state behaviour
+- **Macro context** (`/api/research/report`): `macro_context: ""` when SPY unavailable
+- **Key events** (`/api/research/report`): `key_events_tomorrow: []` always (no real calendar API connected)
+- **Performance** (`/api/performance`): `strategies: []` until real trade history is connected
+- **Trade cards**: scanner skips ticker entirely if yfinance fails; secondary backfill fills minimum count with real-data setups only
+
+---
+
 ## Key files
 
 | File | Role |

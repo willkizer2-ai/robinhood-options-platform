@@ -4,7 +4,6 @@ Runs after market close to prepare "Top Trades for Tomorrow"
 """
 import asyncio
 import logging
-import random
 from datetime import datetime, timedelta, date
 from typing import List, Optional
 
@@ -180,13 +179,7 @@ class OvernightResearchAgent:
         return setups
 
     async def _get_macro_context(self) -> str:
-        """Return date-varying macro context, pulling real SPY data when available."""
-        import random
-        from datetime import date as _date
-
-        day_seed = int(_date.today().strftime("%Y%m%d")) + 1
-        rng      = random.Random(day_seed)
-
+        """Return macro context derived from real SPY data only. Returns empty string if unavailable."""
         try:
             import yfinance as yf
             hist = yf.Ticker("SPY").history(period="5d", interval="1d")
@@ -210,64 +203,17 @@ class OvernightResearchAgent:
         except Exception:
             pass
 
-        # Date-varying fallback contexts
-        contexts = [
-            (
-                "Market consolidating near highs. Fed on hold. "
-                "Breadth improving — watch for AM breakout setups with strong volume confirmation."
-            ),
-            (
-                "Sector rotation active — Tech leading Financials. "
-                "Macro data light this week. Focus on earnings-driven momentum setups."
-            ),
-            (
-                "Distribution phase possible near resistance. "
-                "Prefer asymmetric setups with clear invalidation levels. Risk discipline critical."
-            ),
-            (
-                "Bull trend intact. Small-caps lagging large-caps. "
-                "Fed dovish lean supports equities. Volume picking up into the weekly close."
-            ),
-            (
-                "Mixed macro signals. Dollar firming. "
-                "Watch index opens for directional bias — confirm before taking positions."
-            ),
-        ]
-        return contexts[day_seed % len(contexts)]
+        # No synthetic fallback — return empty so the frontend shows nothing
+        return ""
 
     async def _get_key_events_tomorrow(self) -> List[str]:
-        """Return date-varying key events — rotates daily from a realistic event pool."""
-        import random
-        from datetime import date as _date
-
-        day_seed = int(_date.today().strftime("%Y%m%d")) + 2
-        rng      = random.Random(day_seed)
-
-        event_pool = [
-            "8:30 AM ET — Initial Jobless Claims",
-            "8:30 AM ET — CPI / Core PCE Release",
-            "8:30 AM ET — PPI (Producer Price Index)",
-            "9:45 AM ET — PMI Composite Flash",
-            "10:00 AM ET — Consumer Confidence Index",
-            "10:00 AM ET — ISM Manufacturing / Services PMI",
-            "2:00 PM ET — FOMC Minutes Release",
-            "2:30 PM ET — Fed Chair press conference",
-            "Treasury auction: 10-year / 30-year notes",
-            "Options expiration: elevated gamma risk near key strikes",
-            "Earnings: major S&P 500 component reporting after close",
-            "Fed speaker: Waller / Jefferson / Bostic",
-        ]
-
-        # Always lead with the AM window reminder
-        selected = [
-            "9:30 AM ET — Market open: 0DTE entry window is 9:30–11:00 AM ET only",
-            "Watch for gap-and-go vs. gap-fade at the open bell",
-        ]
-        pool_rest = [e for e in event_pool]
-        rng.shuffle(pool_rest)
-        selected += pool_rest[:4]
-
-        return selected
+        """
+        Return tomorrow's key economic events from a real calendar API.
+        Returns an empty list — no synthetic event list is injected as fallback.
+        Connect a real economic calendar API (e.g. Tradier, Nasdaq, FRED) to populate.
+        """
+        # No hardcoded fallback — return empty so the frontend shows nothing
+        return []
 
     def _determine_market_bias(self, setups: List[ResearchSetup]) -> str:
         calls = sum(1 for s in setups if s.direction == Direction.CALL)
