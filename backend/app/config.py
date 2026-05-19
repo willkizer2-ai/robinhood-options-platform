@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     MAX_TICKERS_NORMAL: int = 100
     MAX_TICKERS_LOW_MEMORY: int = 25
     MIN_CONFIDENCE_SCORE: float = 0.65
+    # Minimum number of real 0DTE trade cards that must appear each session
+    # during the 9:30–11:00 AM ET entry window. When primary scans yield fewer,
+    # a secondary pass with relaxed (but still real-data) thresholds fills the gap.
+    MIN_DAILY_SETUPS: int = int(os.getenv("MIN_DAILY_SETUPS", "3"))
 
     # Low Memory Mode
     LOW_MEMORY_MODE: bool = os.getenv("LOW_MEMORY_MODE", "false").lower() == "true"

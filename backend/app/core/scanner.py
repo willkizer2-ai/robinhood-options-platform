@@ -252,6 +252,22 @@ class MarketScanner:
         if new_setups > 0:
             logger.info(f"✅ Found {new_setups} new setups. Total active: {len(self.active_setups)}")
 
+        # ── Minimum daily setups guarantee ────────────────────────────────────────
+        # Rule: at least MIN_DAILY_SETUPS (default 3) real 0DTE trade cards must
+        # appear during the 9:30–11:00 AM ET entry window each session.
+        # When the strict primary scan yields fewer, backfill with secondary setups
+        # that use the same real yfinance data but relaxed thresholds so that on
+        # quiet / range-bound mornings the board always surfaces the 3 best
+        # available opportunities. Secondary cards are clearly labelled.
+        if in_window:
+            _0dte_count = sum(
+                1 for v in self.active_setups.values()
+                if not v.strategy.value.startswith("V4_")
+            )
+            if _0dte_count < settings.MIN_DAILY_SETUPS:
+                shortfall = settings.MIN_DAILY_SETUPS - _0dte_count
+                await self._backfill_secondary_setups(_today_et, shortfall)
+
     async def scan_ticker(self, ticker: str) -> Optional[TradeSetup]:
         """Scan a single ticker for options setups."""
         try:
@@ -311,6 +327,211 @@ class MarketScanner:
         except Exception as e:
             logger.debug(f"Error scanning {ticker}: {e}")
             return None
+
+    async def _backfill_secondary_setups(self, today_et: date, shortfall: int) -> None:
+        """
+        Secondary scan — fires only when the primary scan yields fewer than
+        MIN_DAILY_SETUPS (default 3) 0DTE cards during the entry window.
+
+        Uses real yfinance data with relaxed V2 thresholds:
+          Volume      >= 1.2x   (primary: >= 2.0x)
+          RSI (CALL)  40–72     (primary: 46–66)
+          RSI (PUT)   28–60     (primary: 34–54)
+          MACD        not opposing direction (neutral is accepted)
+          ADX/IV/ORB/MoveEdge: not required (surface as yellow flags if present)
+
+        Secondary cards are clearly labelled with a risk note and a confidence
+        score capped at 0.72 so they are never confused with primary setups.
+        """
+        # Only 0DTE-eligible tickers can fill the board; scan the full eligible set
+        eligible = list(self.dte_strategy.ZERO_DTE_ELIGIBLE)
+        candidates: list[tuple[float, "TradeSetup"]] = []
+
+        for ticker in eligible:
+            # Skip tickers that already have a primary or secondary setup today
+            if self._daily_fired.get(ticker) == today_et:
+                continue
+            key_call = f"{ticker}_CALL"
+            key_put  = f"{ticker}_PUT"
+            if key_call in self.active_setups or key_put in self.active_setups:
+                continue
+
+            try:
+                ctx = await self.get_market_context(ticker)
+                if not ctx:
+                    continue
+
+                # Minimum: clear trend, at least marginal volume
+                if ctx.volume_ratio < 1.2:
+                    continue
+                if ctx.market_structure not in ("uptrend", "downtrend"):
+                    continue
+
+                direction = (Direction.CALL if ctx.market_structure == "uptrend"
+                             else Direction.PUT)
+
+                # RSI: wider but still sensible zones
+                if ctx.rsi_14 is not None:
+                    if direction == Direction.CALL and not (40.0 <= ctx.rsi_14 <= 72.0):
+                        continue
+                    if direction == Direction.PUT  and not (28.0 <= ctx.rsi_14 <= 60.0):
+                        continue
+
+                # MACD must not actively oppose the direction
+                if direction == Direction.CALL and ctx.macd_signal == "bearish_cross":
+                    continue
+                if direction == Direction.PUT  and ctx.macd_signal == "bullish_cross":
+                    continue
+
+                # Build option contract
+                contract = self.dte_strategy._select_contract(ticker, ctx, direction)
+                if not contract:
+                    continue
+
+                # ── Simplified real-signal confidence score ────────────────────
+                score = 0.0
+
+                # Volume (max 15)
+                if ctx.volume_ratio >= 2.0:   score += 15
+                elif ctx.volume_ratio >= 1.5:  score += 10
+                elif ctx.volume_ratio >= 1.2:  score += 6
+
+                # VWAP side (max 10)
+                vwap_ok = (
+                    (direction == Direction.CALL and ctx.price_vs_vwap > 0.05) or
+                    (direction == Direction.PUT  and ctx.price_vs_vwap < -0.05)
+                )
+                if vwap_ok:
+                    score += 10
+
+                # Market structure aligned (max 12) — already confirmed above
+                score += 12
+
+                # MACD in direction (max 8)
+                if ctx.macd_signal != "neutral":
+                    score += 8
+
+                # RSI quality (max 8): tight zone gets full credit, wide zone partial
+                if ctx.rsi_14 is not None:
+                    in_tight = (
+                        (direction == Direction.CALL and 46.0 <= ctx.rsi_14 <= 66.0) or
+                        (direction == Direction.PUT  and 34.0 <= ctx.rsi_14 <= 54.0)
+                    )
+                    score += 8 if in_tight else 3
+
+                # ADX if available (max 5)
+                if ctx.adx_14 is not None and ctx.adx_14 >= 22:
+                    score += 5
+
+                # Time (max 10) — within entry window by construction
+                score += 8
+
+                # Options baseline (max 5)
+                score += 4
+
+                confidence = round(min(score / 100.0, 0.72), 3)  # cap: never mistaken for primary
+                if confidence < 0.48:
+                    continue
+
+                # ── Build reasoning bullets ────────────────────────────────────
+                bullets: list[str] = [
+                    f"📊 Best Available Setup — secondary tier "
+                    f"({ctx.volume_ratio:.1f}x vol, {ctx.market_structure})"
+                ]
+                if vwap_ok:
+                    bullets.append(
+                        f"✅ Price {ctx.price_vs_vwap:+.2f}% from VWAP — correct side"
+                    )
+                if ctx.macd_signal != "neutral":
+                    bullets.append(
+                        f"✅ MACD {ctx.macd_signal.replace('_', ' ')} — direction confirmed"
+                    )
+                if ctx.rsi_14 is not None:
+                    bullets.append(f"📈 RSI {ctx.rsi_14:.0f} — within tradeable zone")
+                if ctx.adx_14 is not None:
+                    adx_ok = ctx.adx_14 >= 22
+                    bullets.append(
+                        f"{'✅' if adx_ok else '⚠️'} ADX {ctx.adx_14:.1f}"
+                        f" — {'trend confirmed' if adx_ok else 'weak trend, size down'}"
+                    )
+
+                reasoning = TradeReasoning(
+                    bullet_points=bullets,
+                    technical_context=(
+                        f"{ctx.market_structure.upper()} | VWAP {ctx.price_vs_vwap:+.2f}% | "
+                        f"RSI {ctx.rsi_14 or 'N/A'} | Vol {ctx.volume_ratio:.1f}x"
+                    ),
+                    risk_warning=(
+                        "Secondary setup — not all V2.1 gates confirmed. "
+                        "Reduce contract size vs primary setups. "
+                        "Primary golden-hour trades always take priority."
+                    ),
+                    dont_chase_warning=False,
+                )
+
+                # 4:00 PM ET expiry (same as primary 0DTE)
+                import pytz as _ptz
+                _et_tz   = _ptz.timezone("America/New_York")
+                _now_et  = datetime.now(_et_tz)
+                _exp_et  = _now_et.replace(hour=16, minute=0, second=0, microsecond=0)
+                _exp_utc = _exp_et.astimezone(_ptz.utc).replace(tzinfo=None)
+
+                setup = TradeSetup(
+                    id=f"sec_{ticker}_{direction.value}_{today_et.strftime('%Y%m%d')}",
+                    ticker=ticker,
+                    direction=direction,
+                    strategy=Strategy.MOMENTUM,
+                    confidence_score=confidence,
+                    decision=TradeDecision.DO_TAKE,
+                    news_catalyst_tag=None,
+                    contract=contract,
+                    market_context=ctx,
+                    reasoning=reasoning,
+                    detected_at=datetime.utcnow(),
+                    expires_at=_exp_utc,
+                    is_golden_hour=False,
+                    golden_hour_filters={
+                        "iv_rank_ok":    ctx.iv_rank is not None and ctx.iv_rank < 0.65,
+                        "volume_ok":     ctx.volume_ratio >= 2.0,
+                        "atr_premium_ok": False,
+                        "adx_ok":        ctx.adx_14 is not None and ctx.adx_14 >= 22,
+                        "orb_ok":        ctx.orb_confirmed is True,
+                        "move_edge_ok":  False,
+                        "confidence_ok": confidence >= 0.80,
+                        "decision_ok":   True,
+                    },
+                )
+                setup.execution = self._build_execution_instructions(setup, ctx)
+                candidates.append((confidence, setup))
+
+            except Exception as exc:
+                logger.debug(f"Secondary scan error for {ticker}: {exc}")
+
+        # Sort best → worst, take only as many as needed
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        added = 0
+        for conf, setup in candidates:
+            if added >= shortfall:
+                break
+            key = f"{setup.ticker}_{setup.direction.value}"
+            if key not in self.active_setups:
+                self.active_setups[key] = setup
+                self._daily_fired[setup.ticker] = today_et
+                added += 1
+                logger.info(
+                    f"📋 Secondary setup: {setup.ticker} {setup.direction.value} "
+                    f"| conf {conf:.0%} | vol {setup.market_context.volume_ratio:.1f}x"
+                )
+
+        if added:
+            total_0dte = sum(
+                1 for v in self.active_setups.values()
+                if not v.strategy.value.startswith("V4_")
+            )
+            logger.info(
+                f"📋 Backfilled {added} secondary setup(s). "
+                f"Total 0DTE cards: {total_0dte} / {settings.MIN_DAILY_SETUPS} minimum"
+            )
 
     async def get_market_context(self, ticker: str) -> Optional[MarketContext]:
         """
