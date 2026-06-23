@@ -1,0 +1,131 @@
+<!-- @dsCard group="Auth" viewport="1280x760" -->
+<!-- @startingPoint section="Auth" subtitle="Split-panel login / sign-up for Web Trace" viewport="1280x760" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Trace — Sign in</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-page); }
+  .auth { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; }
+  .brandside { position: relative; overflow: hidden; border-right: 1px solid var(--border-subtle);
+    background:
+      radial-gradient(700px 380px at 20% 12%, rgba(138,160,230,0.20), transparent 62%),
+      radial-gradient(620px 380px at 88% 88%, rgba(180,180,204,0.14), transparent 60%),
+      var(--surface-sunken);
+    padding: 48px; display: flex; flex-direction: column; justify-content: space-between; }
+  .brandside .grid { position: absolute; inset: 0; opacity: 0.5; }
+  .blk { position: relative; z-index: 1; }
+  .lk { display: flex; align-items: center; gap: 11px; }
+  .lk .w { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--text-primary); }
+  .lk .t { font-family: var(--font-brand); font-size: 20px; }
+  .pitch { font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1.04; letter-spacing: -0.03em; max-width: 14ch; }
+  .pitchsub { margin-top: 16px; color: var(--text-secondary); font-size: 15px; line-height: 1.6; max-width: 40ch; }
+  .quote { color: var(--text-muted); font-size: 13px; font-family: var(--font-mono); }
+  .formside { display: flex; align-items: center; justify-content: center; padding: 48px; }
+  .card { width: 100%; max-width: 372px; }
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-default); margin-bottom: 28px; }
+  .seg button { flex: 1; padding: 9px; border: none; border-radius: var(--radius-sm); background: transparent; cursor: pointer; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--text-muted); transition: all var(--dur-fast) var(--ease-out); }
+  .seg button.on { background: var(--accent-muted-2); color: var(--text-primary); }
+  label.fld { display: block; margin-bottom: 16px; }
+  label.fld .lbl { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 7px; }
+  .inp { width: 100%; box-sizing: border-box; background: var(--surface-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 11px 13px; color: var(--text-primary); font-family: var(--font-sans); font-size: 14px; outline: none; transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out); }
+  .inp::placeholder { color: var(--text-faint); }
+  .inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
+  .row-between { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 22px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
+  .check input { accent-color: var(--accent); width: 15px; height: 15px; }
+  .link { font-size: 12.5px; color: var(--accent-text); }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--text-faint); font-size: 11px; }
+  .divider::before, .divider::after { content: ''; height: 1px; flex: 1; background: var(--border-subtle); }
+  .oauth { display: flex; gap: 10px; }
+  .legal { margin-top: 22px; font-size: 11px; color: var(--text-faint); line-height: 1.5; text-align: center; }
+  h2.formh { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .formsub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 26px; }
+  [data-lucide] { stroke-width: 1.8; }
+  @media (max-width: 880px) { .auth { grid-template-columns: 1fr; } .brandside { display: none; } }
+</style>
+</head>
+<body>
+  <div id="ph"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script type="text/babel">
+    const { Button, StatusPill } = window.WebTracePortfolioManagementDesignSystem_29ffdf;
+    const Ico = ({ n, s }) => <i data-lucide={n} style={{ width: s||16, height: s||16, display:'inline-flex' }} />;
+
+    function Auth() {
+      const [mode, setMode] = React.useState('signin');
+      const isUp = mode === 'signup';
+      React.useEffect(() => { window.lucide && window.lucide.createIcons(); });
+      return (
+        <div className="auth">
+          <aside className="brandside">
+            <div className="wt-grid-bg grid" />
+            <div className="blk lk">
+              <img src="../../assets/logo-mark.svg" width="36" height="36" alt="" />
+              <span><span className="w">Web</span><span className="t wt-gradient-text">&nbsp;Trace</span></span>
+            </div>
+            <div className="blk">
+              <StatusPill tone="up" pulse>Market Open · 9:54 EDT</StatusPill>
+              <h1 className="pitch" style={{ marginTop: 20 }}><span className="wt-gradient-text">Trace</span> the market's edge</h1>
+              <p className="pitchsub">Real options intelligence on a dark, instrument-grade desk. Credible setups, live execution levels, an honest backtested edge.</p>
+            </div>
+            <div className="blk quote">“Signals that earn their place.”</div>
+          </aside>
+
+          <main className="formside">
+            <div className="card">
+              <div className="seg">
+                <button className={!isUp ? 'on' : ''} onClick={() => setMode('signin')}>Sign in</button>
+                <button className={isUp ? 'on' : ''} onClick={() => setMode('signup')}>Create account</button>
+              </div>
+
+              <h2 className="formh">{isUp ? 'Open your desk' : 'Welcome back'}</h2>
+              <p className="formsub">{isUp ? 'Start tracing real setups in minutes.' : 'Sign in to your trading desk.'}</p>
+
+              {isUp && (
+                <label className="fld"><span className="lbl">Full name</span>
+                  <input className="inp" type="text" placeholder="Will Kizer" /></label>
+              )}
+              <label className="fld"><span className="lbl">Email</span>
+                <input className="inp" type="email" placeholder="you@desk.com" /></label>
+              <label className="fld"><span className="lbl">Password</span>
+                <input className="inp" type="password" placeholder="••••••••••" /></label>
+
+              {!isUp && (
+                <div className="row-between">
+                  <label className="check"><input type="checkbox" defaultChecked /> Keep me signed in</label>
+                  <a className="link" href="#">Forgot password?</a>
+                </div>
+              )}
+
+              <Button variant="primary" size="lg" fullWidth rightIcon={<Ico n="arrow-right" s={17} />}>
+                {isUp ? 'Create account' : 'Sign in'}
+              </Button>
+
+              <div className="divider">or continue with</div>
+              <div className="oauth">
+                <Button variant="secondary" fullWidth leftIcon={<Ico n="chrome" s={16} />}>Google</Button>
+                <Button variant="secondary" fullWidth leftIcon={<Ico n="apple" s={16} />}>Apple</Button>
+              </div>
+
+              <p className="legal">
+                {isUp
+                  ? 'By creating an account you agree to the Terms & Privacy Policy. For educational use — not financial advice.'
+                  : 'Protected by industry-standard encryption. For educational use — not financial advice.'}
+              </p>
+            </div>
+          </main>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('ph')).render(<Auth />);
+  </script>
+</body>
+</html>
