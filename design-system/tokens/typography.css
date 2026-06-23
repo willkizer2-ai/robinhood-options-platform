@@ -1,0 +1,49 @@
+/* ── Web Trace — Typography Tokens ───────────────────────────────────────────
+   Display + UI : Space Grotesk (bold geometric sans)
+   Brand accent : Eagle Lake (used ONLY for logo flourish, hero accent words,
+                  oversized feature numerals — never for dense, small data)
+   Data / mono  : JetBrains Mono (prices, tickers, tabular numbers, code)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Families */
+  --font-sans:    'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-brand:   'Eagle Lake', 'Space Grotesk', serif;   /* distinctive accent */
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Weights (Space Grotesk: 300–700) */
+  --weight-light:    300;
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* Type scale — fluid-ready px steps */
+  --text-2xs: 10px;
+  --text-xs:  11px;
+  --text-sm:  13px;
+  --text-base:15px;
+  --text-md:  17px;
+  --text-lg:  20px;
+  --text-xl:  24px;
+  --text-2xl: 30px;
+  --text-3xl: 38px;
+  --text-4xl: 50px;
+  --text-5xl: 66px;
+  --text-6xl: 88px;
+
+  /* Line heights */
+  --leading-tight:   1.05;
+  --leading-snug:    1.2;
+  --leading-normal:  1.45;
+  --leading-relaxed: 1.65;
+
+  /* Letter spacing */
+  --tracking-tighter: -0.03em;
+  --tracking-tight:   -0.015em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.04em;
+  --tracking-wider:   0.10em;
+  --tracking-widest:  0.18em;   /* eyebrow / overline labels */
+}
