@@ -1,0 +1,28 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Surfaces — charcoal ramp" subtitle="Cool near-black surfaces from page to elevated" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-page); padding: 22px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .sw { flex: 1 1 0; min-width: 92px; border-radius: var(--radius-md); border: 1px solid var(--border-default); overflow: hidden; }
+  .chip { height: 64px; }
+  .meta { padding: 8px 10px; }
+  .name { font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .hex { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--ink-950)"></div><div class="meta"><div class="name">page well</div><div class="hex">--ink-950</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-900)"></div><div class="meta"><div class="name">page</div><div class="hex">--ink-900</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-850)"></div><div class="meta"><div class="name">sunken</div><div class="hex">--ink-850</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-800)"></div><div class="meta"><div class="name">card</div><div class="hex">--ink-800</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-700)"></div><div class="meta"><div class="name">elevated</div><div class="hex">--ink-700</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-650)"></div><div class="meta"><div class="name">chip</div><div class="hex">--ink-650</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-600)"></div><div class="meta"><div class="name">border</div><div class="hex">--ink-600</div></div></div>
+  </div>
+</body>
+</html>
