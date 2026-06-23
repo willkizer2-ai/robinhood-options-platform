@@ -1,0 +1,32 @@
+<!-- @dsCard group="Brand" viewport="700x210" name="Wordmark lockup" subtitle="Mark + Web Trace wordmark — 'Trace' set in Eagle Lake for catch" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-page); padding: 30px; }
+  .lockup { display: flex; align-items: center; gap: 16px; }
+  .name { display: flex; align-items: baseline; gap: 2px; line-height: 1; }
+  .web { font-family: var(--font-display); font-weight: 700; font-size: 40px; letter-spacing: -0.02em; color: var(--text-primary); }
+  .trace { font-family: var(--font-brand); font-size: 40px; line-height: 1; padding-right: 4px; }
+  .desc { font-family: var(--font-sans); font-size: 10px; font-weight: 600; letter-spacing: var(--tracking-widest); text-transform: uppercase; color: var(--text-muted); margin-top: 14px; }
+  .alt { margin-top: 28px; display: flex; align-items: center; gap: 11px; padding-top: 22px; border-top: 1px solid var(--border-subtle); }
+  .alt .web { font-size: 22px; }
+  .alt .trace { font-size: 22px; }
+</style>
+</head>
+<body>
+  <div class="lockup">
+    <img src="../assets/logo-mark.svg" width="62" height="62" alt="Web Trace">
+    <div>
+      <div class="name"><span class="web">Web</span>&nbsp;<span class="trace wt-gradient-text">Trace</span></div>
+      <div class="desc">Portfolio Management</div>
+    </div>
+  </div>
+  <div class="alt">
+    <img src="../assets/logo-mark.svg" width="30" height="30" alt="">
+    <div class="name"><span class="web">Web</span>&nbsp;<span class="trace wt-gradient-text">Trace</span></div>
+  </div>
+</body>
+</html>
