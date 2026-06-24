@@ -1,0 +1,31 @@
+/* ── Web Trace — Spacing & Layout Tokens ─────────────────────────────────────
+   4px base grid. Use --space-* for padding/margins/gaps.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --space-0:   0px;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+  --space-20:  80px;
+  --space-24:  96px;
+  --space-32:  128px;
+
+  /* Container widths */
+  --container-narrow:  640px;
+  --container-content: 960px;
+  --container-wide:    1280px;
+  --container-max:     1536px;
+
+  /* Component rhythm */
+  --gutter:        24px;
+  --card-padding:  16px;
+  --section-pad-y: 96px;
+}

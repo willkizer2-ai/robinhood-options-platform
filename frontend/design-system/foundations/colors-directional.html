@@ -1,0 +1,39 @@
+<!-- @dsCard group="Colors" viewport="700x190" name="Directional & states" subtitle="Teal = up/calls · Magenta = down/puts · Gold = caution/warning" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-page); padding: 22px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .cell { border-radius: var(--radius-md); border: 1px solid var(--border-default); padding: 14px; background: var(--surface-card); }
+  .dot { width: 28px; height: 28px; border-radius: var(--radius-pill); margin-bottom: 10px; }
+  .lbl { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+  .pill { display: inline-block; margin-top: 10px; padding: 3px 9px; border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="cell">
+      <div class="dot" style="background:var(--up); box-shadow:var(--glow-up)"></div>
+      <div class="lbl">Up · Call · Profit</div>
+      <div class="sub">--up · #2dd4bf</div>
+      <span class="pill" style="background:var(--up-bg); color:var(--up-text); border:1px solid var(--up-border)">+12.4%</span>
+    </div>
+    <div class="cell">
+      <div class="dot" style="background:var(--down); box-shadow:var(--glow-down)"></div>
+      <div class="lbl">Down · Put · Loss</div>
+      <div class="sub">--down · #f0508f</div>
+      <span class="pill" style="background:var(--down-bg); color:var(--down-text); border:1px solid var(--down-border)">−8.1%</span>
+    </div>
+    <div class="cell">
+      <div class="dot" style="background:var(--gold-400); box-shadow:var(--glow-gold)"></div>
+      <div class="lbl">Caution · Warning</div>
+      <div class="sub">--warn · #e6b450</div>
+      <span class="pill" style="background:var(--warn-bg); color:var(--gold-300); border:1px solid var(--warn-border)">REVIEW</span>
+    </div>
+  </div>
+</body>
+</html>

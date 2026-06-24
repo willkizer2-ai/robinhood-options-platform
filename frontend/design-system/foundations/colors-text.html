@@ -1,0 +1,26 @@
+<!-- @dsCard group="Colors" viewport="700x170" name="Text on dark" subtitle="Five-step text hierarchy for cool charcoal surfaces" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-page); padding: 24px; }
+  .stack { display: flex; flex-direction: column; gap: 9px; }
+  .line { display: flex; align-items: baseline; gap: 14px; }
+  .tok { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); width: 150px; flex: none; }
+  .s1 { color: var(--text-primary); font-size: 18px; font-weight: 600; }
+  .s2 { color: var(--text-secondary); font-size: 15px; }
+  .s3 { color: var(--text-muted); font-size: 14px; }
+  .s4 { color: var(--text-faint); font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="stack">
+    <div class="line"><span class="tok">--text-primary</span><span class="s1">Primary — headings &amp; key data</span></div>
+    <div class="line"><span class="tok">--text-secondary</span><span class="s2">Secondary — body copy and descriptions</span></div>
+    <div class="line"><span class="tok">--text-muted</span><span class="s3">Muted — labels, captions, metadata</span></div>
+    <div class="line"><span class="tok">--text-faint</span><span class="s4">Faint — footnotes, disabled, timestamps</span></div>
+  </div>
+</body>
+</html>

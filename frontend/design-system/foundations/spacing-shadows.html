@@ -1,0 +1,25 @@
+<!-- @dsCard group="Spacing" viewport="700x220" name="Shadows & glows" subtitle="Depth on near-black + instrument-panel accent glows" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-page); padding: 28px; }
+  .row { display: flex; gap: 22px; flex-wrap: wrap; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .box { width: 96px; height: 60px; border-radius: var(--radius-lg); background: var(--surface-card); }
+  .lbl { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-card)"></div><div class="lbl">card</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-md)"></div><div class="lbl">md</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-lg)"></div><div class="lbl">lg</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--glow-accent)"></div><div class="lbl">glow-accent</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--glow-up)"></div><div class="lbl">glow-up</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--glow-down)"></div><div class="lbl">glow-down</div></div>
+  </div>
+</body>
+</html>

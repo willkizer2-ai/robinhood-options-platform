@@ -1,0 +1,55 @@
+<!-- TEMP showcase: dashboard with sample data injected for PR screenshots only. Deleted after capture. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Trace — Desk (showcase)</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-page); }
+  .shell { max-width: var(--container-wide); margin: 0 auto; }
+  .stickytabs { position: sticky; top: 0; z-index: 40; background: rgba(22,22,25,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-default); }
+  .main { padding: 20px 24px 64px; }
+  .cardgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+  [data-lucide] { stroke-width: 1.9; }
+  /* showcase-only: keep panel titles on one line for clean capture */
+  section > header > div:first-child > div { white-space: nowrap; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="./api.js"></script>
+  <script>
+    // SHOWCASE ONLY — preset tab + sample data (not shipped).
+    location.hash = '#news';
+    (function () {
+      const API = window.WebTraceAPI;
+      API.loadStatus = async () => ({ live: true, tickers: 42, setups: 3, running: true });
+      API.loadSignals = async () => ({ live: true, updated: '9:54 AM ET', active: 3, doTake: 2, setups: [
+        { id: 's1', ticker: 'SPY', direction: 'CALL', strategy: 'ICT V4.1', state: 'live', confidence: 78, price: 591.42, change: 1.28, changePct: 0.22, strike: 592, exp: '0DTE', prem: 1.42, delta: 0.48, iv: 14.6, entry: '$1.42', stop: '$1.05', target: '$2.30', tags: ['7-DTE Index', 'ORB confirmed'], bullets: ['Price reclaimed VWAP with 2.1× relative volume', 'Active bullish FVG aligned with HTF bias'], detected: '9:41 AM ET' },
+        { id: 's2', ticker: 'NVDA', direction: 'CALL', strategy: '0DTE Momentum', state: 'take_profit', confidence: 84, price: 138.55, change: 2.71, changePct: 2.0, strike: 140, exp: '0DTE', prem: 0.96, delta: 0.41, iv: 48.2, entry: '$0.96', stop: '$0.70', target: '$1.60', tags: ['Vol ≥ 2×', 'Breakout'], bullets: ['Cleared intraday resistance on expanding volume', 'RSI 61 — momentum intact, not overbought'], detected: '9:52 AM ET' },
+        { id: 's3', ticker: 'QQQ', direction: 'PUT', strategy: '0DTE Reversal', state: 'terminated', confidence: 66, price: 524.07, change: -0.94, changePct: 0.18, strike: 523, exp: '0DTE', prem: 1.18, delta: -0.44, iv: 19.3, entry: '$1.18', stop: '$0.85', target: '$1.95', tags: ['Rejection at VWAP'], bullets: ['Failed breakout, lost VWAP on rising volume', 'MACD rolled over on the 5-min'], detected: '10:08 AM ET' },
+      ] });
+      API.loadPerformance = async () => ({ live: true, name: 'ICT V4.1 · 7-DTE Index', stats: [
+        { label: 'Total Return', value: '+247.8', suffix: '%', tone: 'up', delta: '+12.4%' },
+        { label: 'Win Rate', value: '75.0', suffix: '%', tone: 'accent' },
+        { label: 'Profit Factor', value: '9.3', suffix: '×' },
+        { label: 'Sharpe', value: '2.41' },
+        { label: 'Max Drawdown', value: '-18.2', suffix: '%', tone: 'down' },
+      ], months: [{ m: 'Jan', r: 18 }, { m: 'Feb', r: -6 }, { m: 'Mar', r: 24 }, { m: 'Apr', r: 12 }, { m: 'May', r: 31 }, { m: 'Jun', r: -9 }, { m: 'Jul', r: 22 }, { m: 'Aug', r: 16 }] });
+      API.loadNews = async () => ({ live: true, actionable: 3, news: [
+        { src: 'Reuters', h: 'Fed officials signal patience on rate path amid cooling inflation', sent: 'Bullish', tone: 'up', impact: 'HIGH', tickers: ['SPY', 'QQQ'], time: '8:32 AM ET' },
+        { src: 'Bloomberg', h: 'Nvidia supplier raises capacity guidance for next quarter', sent: 'Strong Bullish', tone: 'up', impact: 'HIGH', tickers: ['NVDA'], time: '7:58 AM ET' },
+        { src: 'WSJ', h: 'Energy names slide as crude gives back weekly gains', sent: 'Bearish', tone: 'down', impact: 'MEDIUM', tickers: ['XLE'], time: '7:41 AM ET' },
+      ] });
+    })();
+  </script>
+  <script type="text/babel" src="./desk.jsx"></script>
+</body>
+</html>

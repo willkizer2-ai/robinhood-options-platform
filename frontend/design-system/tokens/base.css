@@ -1,0 +1,113 @@
+/* ── Web Trace — Base layer (resets, globals, reusable patterns) ─────────────
+   Token files declare the variables; this file applies the brand defaults to
+   the document and exposes a few patterns every surface reuses.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  font-weight: var(--weight-regular);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'ss01' 1, 'ss02' 1;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-snug);
+  color: var(--text-primary);
+  margin: 0;
+  text-wrap: balance;
+}
+
+p { text-wrap: pretty; }
+
+a { color: var(--accent-text); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+::selection { background: var(--accent-muted-2); color: var(--text-primary); }
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* Tabular numerals everywhere numbers matter */
+.wt-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.wt-tnum { font-variant-numeric: tabular-nums; }
+
+/* ── Brand wordmark / hero gradient text ─────────────────────────────────── */
+.wt-gradient-text {
+  background: var(--grad-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Eagle Lake distinctive accent — reserve for short display flourishes */
+.wt-brand-accent {
+  font-family: var(--font-brand);
+  font-weight: 400;
+  letter-spacing: var(--tracking-normal);
+}
+
+/* Overline / eyebrow label */
+.wt-eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Glass panel ─────────────────────────────────────────────────────────── */
+.wt-glass {
+  background: rgba(35, 35, 41, 0.72);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid var(--border-default);
+}
+
+/* ── Hairline grid backdrop (instrument-panel texture) ───────────────────── */
+.wt-grid-bg {
+  background-image:
+    linear-gradient(var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* ── Scrollbar — cool, slim ──────────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: var(--ink-600) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--ink-600); border-radius: var(--radius-pill); }
+*::-webkit-scrollbar-thumb:hover { background: var(--periwinkle-700); }
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes wt-blink   { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes wt-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes wt-rise    { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.wt-live-dot { animation: wt-blink 1.4s ease-in-out infinite; }
+.wt-skeleton {
+  background: linear-gradient(90deg, var(--ink-800) 25%, var(--ink-700) 50%, var(--ink-800) 75%);
+  background-size: 200% 100%;
+  animation: wt-shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
