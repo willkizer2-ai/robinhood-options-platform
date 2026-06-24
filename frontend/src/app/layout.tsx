@@ -1,29 +1,24 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-space-grotesk',
+  weight: ['300', '400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'Market Cyclops',
-  description: 'Market intelligence platform — Will Kizer',
-  icons: {
-    icon: '/favicon.ico',
-  },
+  title: 'Web Trace Portfolio Management',
+  description: 'Institutional-grade options intelligence — Will Kizer',
+  icons: { icon: '/favicon.ico' },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-bg-base text-text-primary antialiased">
+    <html lang="en" className={spaceGrotesk.variable}>
+      <body className="min-h-screen bg-[#161619] text-[#f4f4f9] antialiased">
         {children}
       </body>
     </html>
