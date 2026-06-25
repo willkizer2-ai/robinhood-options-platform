@@ -9,9 +9,9 @@
   "avg_win_pct": 150.9,
   "avg_loss_pct": -45.5,
   "max_drawdown_pct": -5.54,
-  "sharpe_ratio": 14.01,
+  "sharpe_ratio": 2.36,
   "total_return_pct": 113.5,
-  "annualized_return_pct": 46.12,
+  "annualized_return_pct": 58.32,
   "monthly_returns": [
     {
       "month": "2024-10",
@@ -223,5 +223,6 @@
       "cumulative_pct": 113.5,
       "drawdown_pct": -1.84
     }
-  ]
+  ],
+  "trades_per_year": 7.9
 }

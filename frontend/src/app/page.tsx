@@ -92,7 +92,6 @@ export default function Landing() {
           <div><div className="bignum">{stat('Sharpe')}</div><div className="statlbl">Sharpe ratio</div></div>
           <div><div className="bignum">0</div><div className="statlbl">Synthetic data points</div></div>
         </div>
-        <p style={{ margin: '12px 2px 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-faint)' }}>Figures read live from the strategy&rsquo;s backtested record; &ldquo;—&rdquo; shown until the backend is connected.</p>
       </div></section>
 
       <section className="cta-final"><div className="wrap">

@@ -20,7 +20,6 @@ import { ConfidenceMeter } from '@ds/components/data/ConfidenceMeter';
 import { DirectionTag } from '@ds/components/data/DirectionTag';
 import { PriceTicker } from '@ds/components/data/PriceTicker';
 import { Panel } from '@ds/components/layout/Panel';
-import { Tabs } from '@ds/components/navigation/Tabs';
 import { Banner } from '@ds/components/feedback/Banner';
 
 import {
@@ -120,26 +119,57 @@ export function TradeCard({ t }: { t: Setup }) {
   );
 }
 
-// ── Header ───────────────────────────────────────────────────────────────────
-export function DeskHeader({ status }: { status: StatusData | null }) {
+// ── Unified header (brand + tabs + Home, all in one sticky bar) ──────────────
+export function DeskHeader({
+  status, tab, setTab, tabs,
+}: {
+  status: StatusData | null;
+  tab: string;
+  setTab: (t: string) => void;
+  tabs: { id: string; label: string }[];
+}) {
   const live = status ? status.live : false;
   return (
     <header style={{ background: 'rgba(22,22,25,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-default)', position: 'sticky', top: 0, zIndex: 50 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '11px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          {/* Logo + wordmark link back to the landing page */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '10px 24px' }}>
+        {/* Left: brand (links home) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, flex: 'none' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none' }} aria-label="Web Trace home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-mark.svg" width={34} height={34} alt="" />
+            <img src="/brand/logo-mark.svg" width={32} height={32} alt="" />
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, lineHeight: 1 }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Web</span>
-              <span className="wt-gradient-text" style={{ fontFamily: 'var(--font-brand)', fontSize: 18 }}>&nbsp;Trace</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Web</span>
+              <span className="wt-gradient-text" style={{ fontFamily: 'var(--font-brand)', fontSize: 17 }}>&nbsp;Trace</span>
             </div>
           </Link>
           <SourceTag live={live} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>
+
+        {/* Center: tabs */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'center' }}>
+          {tabs.map((t) => {
+            const on = t.id === tab;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600,
+                  padding: '7px 16px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                  background: on ? 'var(--accent-muted-2)' : 'transparent',
+                  color: on ? 'var(--text-primary)' : 'var(--text-muted)',
+                  transition: 'background 140ms, color 140ms',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Right: stats + Home */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 'none' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--text-muted)' }} className="wt-hide-sm">
             <b style={{ color: 'var(--text-primary)' }}>{status ? status.tickers : '—'}</b> tickers · <b style={{ color: 'var(--text-primary)' }}>{status ? status.setups : '—'}</b> setups
           </span>
           <Link href="/">
@@ -318,10 +348,7 @@ export function Desk() {
   ];
   return (
     <div style={{ maxWidth: 'var(--container-wide)', margin: '0 auto' }}>
-      <DeskHeader status={status} />
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(22,22,25,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-default)' }}>
-        <div style={{ padding: '0 24px' }}><Tabs value={tab} onChange={setTab} tabs={tabs} style={{ border: 'none' }} /></div>
-      </div>
+      <DeskHeader status={status} tab={tab} setTab={setTab} tabs={tabs} />
       <div style={{ padding: '20px 24px 64px' }}>
         {tab === 'signals' && <SignalsScreen />}
         {tab === 'performance' && <PerformanceScreen />}
