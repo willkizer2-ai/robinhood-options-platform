@@ -5,8 +5,10 @@
 // Data comes only from the live backend (see ../lib/api). No mock data.
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Clock, CheckCircle2, Pause, X, CheckCheck, LineChart, CalendarClock,
+  Home, Radar, GitFork, Layers, TrendingUp, Activity, ShieldCheck,
 } from 'lucide-react';
 
 // Design-system primitives (copied into the repo — see CLAUDE-CODE prompt).
@@ -125,18 +127,24 @@ export function DeskHeader({ status }: { status: StatusData | null }) {
     <header style={{ background: 'rgba(22,22,25,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-default)', position: 'sticky', top: 0, zIndex: 50 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '11px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-mark.svg" width={34} height={34} alt="" />
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, lineHeight: 1 }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Web</span>
-            <span className="wt-gradient-text" style={{ fontFamily: 'var(--font-brand)', fontSize: 18 }}>&nbsp;Trace</span>
-          </div>
+          {/* Logo + wordmark link back to the landing page */}
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none' }} aria-label="Web Trace home">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-mark.svg" width={34} height={34} alt="" />
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, lineHeight: 1 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Web</span>
+              <span className="wt-gradient-text" style={{ fontFamily: 'var(--font-brand)', fontSize: 18 }}>&nbsp;Trace</span>
+            </div>
+          </Link>
           <SourceTag live={live} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>
             <b style={{ color: 'var(--text-primary)' }}>{status ? status.tickers : '—'}</b> tickers · <b style={{ color: 'var(--text-primary)' }}>{status ? status.setups : '—'}</b> setups
           </span>
+          <Link href="/">
+            <Button variant="ghost" size="sm" leftIcon={<Home size={14} />}>Home</Button>
+          </Link>
         </div>
       </div>
     </header>
@@ -180,9 +188,12 @@ export function PerformanceScreen() {
   const stamp = d.asOf ? 'As of EOD ' + fmtDate(d.asOf) : 'As of last end-of-day';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-faint)', display: 'inline-flex', alignItems: 'center', gap: 6 }}><CalendarClock size={13} /> {stamp} · updated daily</span>
-        <SourceTag live={d.live} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-faint)', display: 'inline-flex', alignItems: 'center', gap: 6 }}><CalendarClock size={13} /> {stamp}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Badge tone="gold" variant="outline">Backtested</Badge>
+          <SourceTag live={d.live} />
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 12 }}>
         {d.stats.map((s, i) => <StatTile key={i} label={s.label} value={s.value} suffix={s.suffix} tone={s.tone} delta={s.delta ?? undefined} />)}
@@ -214,9 +225,56 @@ export function PerformanceScreen() {
             </div>
           </div>
         )}
-        <p style={{ margin: '10px 2px 0', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-faint)' }}>Monthly net return per the live trade history. Past performance is not indicative of future results.</p>
+        <p style={{ margin: '10px 2px 0', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-faint)' }}>Monthly net return from the backtested trade record. Months with no qualifying setup show 0%. Past performance is not indicative of future results.</p>
       </Panel>
+
+      <StrategyExplainer />
     </div>
+  );
+}
+
+// ── Strategy / Confluence explainer ──────────────────────────────────────────
+// Documents the ICT V4.1 gates that must align before a trade is taken. This is
+// static educational copy describing the engine's methodology — not trade data.
+const CONFLUENCES: { Icon: any; name: string; weight: string; body: string }[] = [
+  { Icon: Layers, name: 'Fair Value Gap (FVG)', weight: '0–25 pts', body: 'A 3-candle institutional imbalance left unfilled. Entry requires price returning to an active (unmitigated) gap — indices fill ~80% of FVGs within 5 bars.' },
+  { Icon: Activity, name: 'Value Area (VAH/VAL)', weight: '0–25 pts', body: 'Rolling volume profile. The strongest entries sit at the Value Area Low (calls) or High (puts), where ~78% of sessions close inside the prior value area.' },
+  { Icon: GitFork, name: 'Market Structure', weight: '0–15 pts', body: 'A liquidity sweep (Judas swing) followed by a Change of Character or Break of Structure — confirmation that manipulation is complete before entry.' },
+  { Icon: TrendingUp, name: 'Fibonacci OTE', weight: '0–10 pts', body: 'Optimal Trade Entry zone (61.8–78.6% retracement) or the 50% equilibrium, where institutional limit orders cluster.' },
+  { Icon: Radar, name: 'HTF Bias', weight: '0–15 pts', body: 'Higher-timeframe (30m–4h) EMA bias sets the only permitted trade direction. Counter-trend signals are rejected.' },
+  { Icon: ShieldCheck, name: 'Order Block + Volume', weight: '0–10 pts', body: 'An unmitigated order block overlapping the FVG (the "Unicorn" model) plus volume/CVD confirmation adds the final conviction points.' },
+];
+
+export function StrategyExplainer() {
+  return (
+    <Panel eyebrow="Methodology" title="ICT V4.1 — How a trade qualifies">
+      <p style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+        Every signal is scored 0–100 across six confluences. A trade is only taken when the
+        combined score clears the threshold (≥65 fires; ≥80 is high-conviction) <em>and</em> the
+        mandatory gates — an active FVG, confirmed structure, and HTF bias — all align. The engine
+        trades ATM options on liquid index ETFs (SPY, QQQ, IWM, DIA, XLK) with a 50% stop and 150%
+        target. Few setups clear the bar by design — quality over frequency.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px,1fr))', gap: 12 }}>
+        {CONFLUENCES.map((c, i) => (
+          <div key={i} style={{ padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--surface-sunken)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
+              <span style={{ display: 'inline-flex', width: 30, height: 30, borderRadius: 'var(--radius-sm)', alignItems: 'center', justifyContent: 'center', background: 'var(--accent-muted)', color: 'var(--accent-text)', flex: 'none' }}><c.Icon size={16} /></span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>{c.name}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-faint)' }}>{c.weight}</div>
+              </div>
+            </div>
+            <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: 'var(--text-muted)' }}>{c.body}</p>
+          </div>
+        ))}
+      </div>
+      <p style={{ margin: '16px 2px 0', fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-faint)', lineHeight: 1.5 }}>
+        Results shown are backtested on real historical OHLC data over a 2-year window — a limited,
+        high-conviction sample, not a live-traded record. ATM premiums modeled via Black-Scholes.
+        For educational use; not financial advice.
+      </p>
+    </Panel>
   );
 }
 
