@@ -206,16 +206,22 @@ export function SignalsScreen() {
 
 export function PerformanceScreen() {
   const d = useLoad(loadPerformance);
+  const [active, setActive] = useState(0);
   if (!d) return <Skeleton n={2} h={140} />;
-  if (d.empty) return <Panel eyebrow="Performance" title="No trade history yet"><p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>Performance populates once real trade history is connected. The chart will fill in from Jan 2025 to the latest end-of-day once the backend serves it.</p></Panel>;
-  const max = Math.max(20, ...d.months.map((m) => Math.abs(m.r)));
-  const groups: { year: string; items: typeof d.months }[] = [];
-  d.months.forEach((mo) => {
+  if (d.empty || !d.strategies.length) return <Panel eyebrow="Performance" title="No trade history yet"><p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>Performance populates once real backtest output is connected. No simulated figures are shown.</p></Panel>;
+
+  const idx = Math.min(active, d.strategies.length - 1);
+  const strat = d.strategies[idx];
+  const months = strat.months;
+  const max = Math.max(20, ...months.map((m) => Math.abs(m.r)));
+  const groups: { year: string; items: typeof months }[] = [];
+  months.forEach((mo) => {
     const last = groups[groups.length - 1];
     if (last && last.year === mo.year) last.items.push(mo);
     else groups.push({ year: mo.year, items: [mo] });
   });
   const stamp = d.asOf ? 'As of EOD ' + fmtDate(d.asOf) : 'As of last end-of-day';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -225,12 +231,47 @@ export function PerformanceScreen() {
           <SourceTag live={d.live} />
         </div>
       </div>
+
+      {/* Strategy selector — only shown when more than one strategy exists */}
+      {d.strategies.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {d.strategies.map((s, i) => {
+            const on = i === idx;
+            return (
+              <button
+                key={s.key}
+                onClick={() => setActive(i)}
+                style={{
+                  textAlign: 'left', cursor: 'pointer', flex: '1 1 240px',
+                  padding: '12px 14px', borderRadius: 'var(--radius-md)',
+                  border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-default)'}`,
+                  background: on ? 'var(--accent-muted)' : 'var(--surface-sunken)',
+                  transition: 'border-color 140ms, background 140ms',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.name}</span>
+                  {s.dteLabel && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--accent-text)', border: '1px solid var(--border-accent)', borderRadius: 'var(--radius-pill)', padding: '2px 7px', whiteSpace: 'nowrap' }}>{s.dteLabel}</span>}
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+                  {s.stats.find((x) => x.label === 'Win Rate')?.value}% WR · {s.stats.find((x) => x.label === 'Profit Factor')?.value}× PF
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {strat.description && (
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>{strat.description}</p>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 12 }}>
-        {d.stats.map((s, i) => <StatTile key={i} label={s.label} value={s.value} suffix={s.suffix} tone={s.tone} delta={s.delta ?? undefined} />)}
+        {strat.stats.map((s, i) => <StatTile key={i} label={s.label} value={s.value} suffix={s.suffix} tone={s.tone} delta={s.delta ?? undefined} />)}
       </div>
-      <Panel eyebrow={d.name || 'Strategy'} title="Monthly Returns" action={<Badge tone="up" variant="soft">{groups.length > 1 ? groups[0].year + '–' + groups[groups.length - 1].year : 'Live'}</Badge>}>
-        {d.months.length === 0 ? (
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>No monthly data available yet — history loads from Jan 2025 onward once connected.</p>
+      <Panel eyebrow={strat.name} title="Monthly Returns" action={<Badge tone="up" variant="soft">{groups.length > 1 ? groups[0].year + '–' + groups[groups.length - 1].year : 'Backtest'}</Badge>}>
+        {months.length === 0 ? (
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>No monthly data available for this strategy.</p>
         ) : (
           <div style={{ overflowX: 'auto', paddingBottom: 6 }}>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 22, height: 200, minWidth: 'min-content', padding: '8px 4px' }}>

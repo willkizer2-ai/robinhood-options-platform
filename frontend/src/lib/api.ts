@@ -125,29 +125,63 @@ export async function loadNews(): Promise<NewsData> {
   catch { return { live: false, news: [], actionable: 0 }; }
 }
 
-export interface PerformanceData { live: boolean; stats: StatItem[]; months: MonthPoint[]; name?: string; asOf?: string | null; empty?: boolean; }
+export interface StrategyPerf {
+  key: string;
+  name: string;
+  description?: string;
+  dteLabel?: string;
+  period?: string;
+  tradesPerYear?: number | null;
+  stats: StatItem[];
+  months: MonthPoint[];
+}
+export interface PerformanceData {
+  live: boolean;
+  strategies: StrategyPerf[];
+  asOf?: string | null;
+  disclaimer?: string;
+  empty?: boolean;
+  // legacy single-strategy fields (kept for any older callers)
+  stats?: StatItem[];
+  months?: MonthPoint[];
+  name?: string;
+}
+
+const MON_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function mapStrategy(s: any): StrategyPerf {
+  const stats: StatItem[] = [
+    { label: 'Total Return', value: (s.total_return_pct >= 0 ? '+' : '') + Number(s.total_return_pct).toFixed(1), suffix: '%', tone: s.total_return_pct >= 0 ? 'up' : 'down', delta: null },
+    { label: 'Win Rate', value: Number(s.win_rate <= 1 ? s.win_rate * 100 : s.win_rate).toFixed(1), suffix: '%', tone: 'accent' },
+    { label: 'Profit Factor', value: Number(s.profit_factor).toFixed(1), suffix: '×' },
+    { label: 'Sharpe', value: Number(s.sharpe_ratio).toFixed(2) },
+    { label: 'Max Drawdown', value: Number(s.max_drawdown_pct).toFixed(1), suffix: '%', tone: 'down' },
+  ];
+  const months: MonthPoint[] = (s.monthly_returns || []).map((m: any) => {
+    const ym: string = m.month || '';
+    const [yr, mo] = ym.split('-');
+    const mi = Math.max(0, (parseInt(mo, 10) || 1) - 1);
+    return { ym, year: yr || '', m: MON_ABBR[mi], r: Math.round(m.return_pct) };
+  });
+  return {
+    key: s.key, name: s.name, description: s.description, dteLabel: s.dte_label,
+    period: s.period, tradesPerYear: s.trades_per_year ?? null, stats, months,
+  };
+}
+
 export async function loadPerformance(): Promise<PerformanceData> {
   try {
     const d = await get('/performance');
-    const s = (d.strategies || [])[0];
-    if (!s) return { live: true, stats: [], months: [], empty: true };
-    const stats: StatItem[] = [
-      { label: 'Total Return', value: (s.total_return_pct >= 0 ? '+' : '') + Number(s.total_return_pct).toFixed(1), suffix: '%', tone: s.total_return_pct >= 0 ? 'up' : 'down', delta: null },
-      { label: 'Win Rate', value: Number(s.win_rate <= 1 ? s.win_rate * 100 : s.win_rate).toFixed(1), suffix: '%', tone: 'accent' },
-      { label: 'Profit Factor', value: Number(s.profit_factor).toFixed(1), suffix: '×' },
-      { label: 'Sharpe', value: Number(s.sharpe_ratio).toFixed(2) },
-      { label: 'Max Drawdown', value: Number(s.max_drawdown_pct).toFixed(1), suffix: '%', tone: 'down' },
-    ];
-    const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const months: MonthPoint[] = (s.monthly_returns || []).map((m: any) => {
-      const ym: string = m.month || '';
-      const [yr, mo] = ym.split('-');
-      const mi = Math.max(0, (parseInt(mo, 10) || 1) - 1);
-      return { ym, year: yr || '', m: MON[mi], r: Math.round(m.return_pct) };
-    });
-    const asOf = d.as_of || s.as_of || d.last_updated || null;
-    return { live: true, stats, months, name: s.name, asOf };
-  } catch { return { live: false, stats: [], months: [], empty: true }; }
+    const raw = d.strategies || [];
+    if (!raw.length) return { live: true, strategies: [], empty: true };
+    const strategies = raw.map(mapStrategy);
+    const asOf = d.as_of || d.last_updated || null;
+    return {
+      live: true, strategies, asOf, disclaimer: d.disclaimer,
+      // legacy mirror of first strategy
+      stats: strategies[0].stats, months: strategies[0].months, name: strategies[0].name,
+    };
+  } catch { return { live: false, strategies: [], empty: true }; }
 }
 
 // ── useLoad — load once + optional polling (mirrors the preview's hook) ───────

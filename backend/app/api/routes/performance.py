@@ -55,6 +55,8 @@ class StrategyStats(BaseModel):
     total_return_pct: float
     annualized_return_pct: float
     monthly_returns: List[MonthlyReturn]
+    dte_label: Optional[str] = None
+    trades_per_year: Optional[float] = None
 
 
 class PerformanceReport(BaseModel):
@@ -66,16 +68,22 @@ class PerformanceReport(BaseModel):
 
 # ── Loader ────────────────────────────────────────────────────────────────────
 
-def _load_strategy() -> Optional[dict]:
-    """Load the real backtested strategy payload. Returns None if unavailable."""
+def _load_strategies() -> List[dict]:
+    """Load real backtested strategy payloads. Returns [] if unavailable."""
     try:
         path = os.path.abspath(_DATA_PATH)
         if not os.path.exists(path):
-            return None
+            return []
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        # Support both the new {"strategies": [...]} shape and a single legacy object
+        if isinstance(data, dict) and "strategies" in data:
+            return data["strategies"]
+        if isinstance(data, dict) and "key" in data:
+            return [data]
+        return []
     except Exception:
-        return None
+        return []
 
 
 # ── Route ─────────────────────────────────────────────────────────────────────
@@ -89,9 +97,9 @@ async def get_performance():
     confluence gates — no simulated or synthetic figures. If the backtest
     output file is missing, returns an empty strategies list.
     """
-    strat = _load_strategy()
+    strategies = _load_strategies()
 
-    if not strat:
+    if not strategies:
         return PerformanceReport(
             generated_at=datetime.utcnow().isoformat() + "Z",
             disclaimer=(
@@ -102,23 +110,23 @@ async def get_performance():
             strategies=[],
         )
 
-    # Determine as_of from the last month in the curve
-    months = strat.get("monthly_returns", [])
+    # as_of from the latest month across all strategies
     as_of = None
-    if months:
-        last_month = months[-1]["month"]  # YYYY-MM
-        as_of = last_month + "-01"
+    last_months = [s["monthly_returns"][-1]["month"] for s in strategies if s.get("monthly_returns")]
+    if last_months:
+        as_of = max(last_months) + "-01"
+
+    total_trades = sum(s.get("total_trades", 0) for s in strategies)
 
     return PerformanceReport(
         generated_at=datetime.utcnow().isoformat() + "Z",
         as_of=as_of,
         disclaimer=(
-            "BACKTESTED results, not a live-traded record. The ICT V4.1 strategy "
-            "was simulated on real historical index-ETF price data (SPY, QQQ, IWM, "
-            "DIA, XLK) over a 2-year window, producing a limited sample of "
-            f"{strat.get('total_trades', 0)} high-conviction trades. ATM option "
-            "premiums are modeled via Black-Scholes. Past performance does not "
-            "indicate future results."
+            "BACKTESTED results, not a live-traded record. These ICT V4 strategies "
+            "were simulated on real historical index-ETF price data (SPY, QQQ, IWM, "
+            f"DIA, XLK) over a 2-year window, producing {total_trades} high-conviction "
+            "trades total. ATM option premiums are modeled via Black-Scholes. Sample "
+            "sizes are limited. Past performance does not indicate future results."
         ),
-        strategies=[StrategyStats(**strat)],
+        strategies=[StrategyStats(**s) for s in strategies],
     )

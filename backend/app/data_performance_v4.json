@@ -1,228 +1,462 @@
 {
-  "key": "ict_v4_1",
-  "name": "ICT V4.1 \u2014 Index Options",
-  "description": "Inner Circle Trader confluence model for liquid index ETFs (SPY, QQQ, IWM, DIA, XLK). Enters only when Fair Value Gap, Value Area, market structure, Fibonacci OTE, and HTF bias align. ATM options priced via Black-Scholes; backtested on real OHLC data.",
-  "period": "2024-06-25 to 2026-06-25",
-  "total_trades": 13,
-  "win_rate": 69.2,
-  "profit_factor": 7.23,
-  "avg_win_pct": 150.9,
-  "avg_loss_pct": -45.5,
-  "max_drawdown_pct": -5.54,
-  "sharpe_ratio": 2.36,
-  "total_return_pct": 113.5,
-  "annualized_return_pct": 58.32,
-  "monthly_returns": [
+  "strategies": [
     {
-      "month": "2024-10",
-      "return_pct": -5.54,
-      "trades": 1,
-      "wins": 0,
-      "losses": 1,
-      "equity": 4723.18,
-      "cumulative_pct": -5.54,
-      "drawdown_pct": -5.54
+      "key": "ict_v4_1",
+      "name": "ICT V4.1 \u2014 Indices (Selective)",
+      "description": "The selective ICT V4.1 confluence model on liquid index ETFs (SPY, QQQ, IWM, DIA, XLK). High score threshold means few but high-conviction 7-DTE option setups \u2014 only the cleanest FVG + Value Area + structure + Fib + HTF alignments.",
+      "period": "2024-06-25 to 2026-06-25",
+      "total_trades": 13,
+      "win_rate": 69.2,
+      "profit_factor": 7.23,
+      "avg_win_pct": 150.9,
+      "avg_loss_pct": -45.5,
+      "max_drawdown_pct": -5.54,
+      "sharpe_ratio": 2.36,
+      "total_return_pct": 113.5,
+      "annualized_return_pct": 58.32,
+      "monthly_returns": [
+        {
+          "month": "2024-10",
+          "return_pct": -5.54,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 4723.18,
+          "cumulative_pct": -5.54,
+          "drawdown_pct": -5.54
+        },
+        {
+          "month": "2024-11",
+          "return_pct": 31.06,
+          "trades": 2,
+          "wins": 2,
+          "losses": 0,
+          "equity": 6190.11,
+          "cumulative_pct": 23.8,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2024-12",
+          "return_pct": -3.53,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 5971.33,
+          "cumulative_pct": 19.43,
+          "drawdown_pct": -3.53
+        },
+        {
+          "month": "2025-01",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 5971.33,
+          "cumulative_pct": 19.43,
+          "drawdown_pct": -3.53
+        },
+        {
+          "month": "2025-02",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 5971.33,
+          "cumulative_pct": 19.43,
+          "drawdown_pct": -3.53
+        },
+        {
+          "month": "2025-03",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 5971.33,
+          "cumulative_pct": 19.43,
+          "drawdown_pct": -3.53
+        },
+        {
+          "month": "2025-04",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 5971.33,
+          "cumulative_pct": 19.43,
+          "drawdown_pct": -3.53
+        },
+        {
+          "month": "2025-05",
+          "return_pct": 10.76,
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "equity": 6613.91,
+          "cumulative_pct": 32.28,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-06",
+          "return_pct": 18.3,
+          "trades": 2,
+          "wins": 2,
+          "losses": 0,
+          "equity": 7824.06,
+          "cumulative_pct": 56.48,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-07",
+          "return_pct": 3.33,
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "equity": 8084.26,
+          "cumulative_pct": 61.69,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-08",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8084.26,
+          "cumulative_pct": 61.69,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-09",
+          "return_pct": 3.18,
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "equity": 8341.38,
+          "cumulative_pct": 66.83,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-10",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8341.38,
+          "cumulative_pct": 66.83,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-11",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8341.38,
+          "cumulative_pct": 66.83,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-12",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8341.38,
+          "cumulative_pct": 66.83,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-01",
+          "return_pct": -2.57,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 8126.8,
+          "cumulative_pct": 62.54,
+          "drawdown_pct": -2.57
+        },
+        {
+          "month": "2026-02",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8126.8,
+          "cumulative_pct": 62.54,
+          "drawdown_pct": -2.57
+        },
+        {
+          "month": "2026-03",
+          "return_pct": 33.82,
+          "trades": 2,
+          "wins": 2,
+          "losses": 0,
+          "equity": 10875.52,
+          "cumulative_pct": 117.51,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-04",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 10875.52,
+          "cumulative_pct": 117.51,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-05",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 10875.52,
+          "cumulative_pct": 117.51,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-06",
+          "return_pct": -1.84,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 10675.03,
+          "cumulative_pct": 113.5,
+          "drawdown_pct": -1.84
+        }
+      ],
+      "trades_per_year": 7.9,
+      "dte_label": "7-DTE index options"
     },
     {
-      "month": "2024-11",
-      "return_pct": 31.06,
-      "trades": 2,
-      "wins": 2,
-      "losses": 0,
-      "equity": 6190.11,
-      "cumulative_pct": 23.8,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2024-12",
-      "return_pct": -3.53,
-      "trades": 1,
-      "wins": 0,
-      "losses": 1,
-      "equity": 5971.33,
-      "cumulative_pct": 19.43,
-      "drawdown_pct": -3.53
-    },
-    {
-      "month": "2025-01",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 5971.33,
-      "cumulative_pct": 19.43,
-      "drawdown_pct": -3.53
-    },
-    {
-      "month": "2025-02",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 5971.33,
-      "cumulative_pct": 19.43,
-      "drawdown_pct": -3.53
-    },
-    {
-      "month": "2025-03",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 5971.33,
-      "cumulative_pct": 19.43,
-      "drawdown_pct": -3.53
-    },
-    {
-      "month": "2025-04",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 5971.33,
-      "cumulative_pct": 19.43,
-      "drawdown_pct": -3.53
-    },
-    {
-      "month": "2025-05",
-      "return_pct": 10.76,
-      "trades": 1,
-      "wins": 1,
-      "losses": 0,
-      "equity": 6613.91,
-      "cumulative_pct": 32.28,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2025-06",
-      "return_pct": 18.3,
-      "trades": 2,
-      "wins": 2,
-      "losses": 0,
-      "equity": 7824.06,
-      "cumulative_pct": 56.48,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2025-07",
-      "return_pct": 3.33,
-      "trades": 1,
-      "wins": 1,
-      "losses": 0,
-      "equity": 8084.27,
-      "cumulative_pct": 61.69,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2025-08",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 8084.27,
-      "cumulative_pct": 61.69,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2025-09",
-      "return_pct": 3.18,
-      "trades": 1,
-      "wins": 1,
-      "losses": 0,
-      "equity": 8341.39,
-      "cumulative_pct": 66.83,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2025-10",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 8341.39,
-      "cumulative_pct": 66.83,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2025-11",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 8341.39,
-      "cumulative_pct": 66.83,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2025-12",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 8341.39,
-      "cumulative_pct": 66.83,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2026-01",
-      "return_pct": -2.57,
-      "trades": 1,
-      "wins": 0,
-      "losses": 1,
-      "equity": 8126.81,
-      "cumulative_pct": 62.54,
-      "drawdown_pct": -2.57
-    },
-    {
-      "month": "2026-02",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 8126.81,
-      "cumulative_pct": 62.54,
-      "drawdown_pct": -2.57
-    },
-    {
-      "month": "2026-03",
-      "return_pct": 33.82,
-      "trades": 2,
-      "wins": 2,
-      "losses": 0,
-      "equity": 10875.53,
-      "cumulative_pct": 117.51,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2026-04",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 10875.53,
-      "cumulative_pct": 117.51,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2026-05",
-      "return_pct": 0.0,
-      "trades": 0,
-      "wins": 0,
-      "losses": 0,
-      "equity": 10875.53,
-      "cumulative_pct": 117.51,
-      "drawdown_pct": 0.0
-    },
-    {
-      "month": "2026-06",
-      "return_pct": -1.84,
-      "trades": 1,
-      "wins": 0,
-      "losses": 1,
-      "equity": 10675.04,
-      "cumulative_pct": 113.5,
-      "drawdown_pct": -1.84
+      "key": "ict_v4_rank2",
+      "name": "ICT V4 \u2014 Standard Gate (Higher Frequency)",
+      "description": "The same ICT V4 engine with a standard score gate and shorter 5-DTE horizon for more frequent index-ETF setups. Trades more often at a lower win rate but a higher 2.5x profit target \u2014 a larger, more statistically robust sample.",
+      "period": "2024-06-25 to 2026-06-25",
+      "total_trades": 21,
+      "win_rate": 52.4,
+      "profit_factor": 3.29,
+      "avg_win_pct": 152.0,
+      "avg_loss_pct": -47.1,
+      "max_drawdown_pct": -7.82,
+      "sharpe_ratio": 1.64,
+      "total_return_pct": 89.82,
+      "annualized_return_pct": 46.87,
+      "monthly_returns": [
+        {
+          "month": "2024-10",
+          "return_pct": -2.88,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 4855.79,
+          "cumulative_pct": -2.88,
+          "drawdown_pct": -2.88
+        },
+        {
+          "month": "2024-11",
+          "return_pct": 29.13,
+          "trades": 3,
+          "wins": 3,
+          "losses": 0,
+          "equity": 6270.06,
+          "cumulative_pct": 25.4,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2024-12",
+          "return_pct": -2.9,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 6088.09,
+          "cumulative_pct": 21.76,
+          "drawdown_pct": -2.9
+        },
+        {
+          "month": "2025-01",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 6088.09,
+          "cumulative_pct": 21.76,
+          "drawdown_pct": -2.9
+        },
+        {
+          "month": "2025-02",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 6088.09,
+          "cumulative_pct": 21.76,
+          "drawdown_pct": -2.9
+        },
+        {
+          "month": "2025-03",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 6088.09,
+          "cumulative_pct": 21.76,
+          "drawdown_pct": -2.9
+        },
+        {
+          "month": "2025-04",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 6088.09,
+          "cumulative_pct": 21.76,
+          "drawdown_pct": -2.9
+        },
+        {
+          "month": "2025-05",
+          "return_pct": 14.38,
+          "trades": 3,
+          "wins": 3,
+          "losses": 0,
+          "equity": 6963.4,
+          "cumulative_pct": 39.27,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-06",
+          "return_pct": 17.02,
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "equity": 8148.39,
+          "cumulative_pct": 62.97,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-07",
+          "return_pct": -5.74,
+          "trades": 3,
+          "wins": 0,
+          "losses": 3,
+          "equity": 7680.72,
+          "cumulative_pct": 53.61,
+          "drawdown_pct": -5.74
+        },
+        {
+          "month": "2025-08",
+          "return_pct": -2.21,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 7511.02,
+          "cumulative_pct": 50.22,
+          "drawdown_pct": -7.82
+        },
+        {
+          "month": "2025-09",
+          "return_pct": 10.81,
+          "trades": 3,
+          "wins": 2,
+          "losses": 1,
+          "equity": 8322.78,
+          "cumulative_pct": 66.46,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-10",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8322.78,
+          "cumulative_pct": 66.46,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-11",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8322.78,
+          "cumulative_pct": 66.46,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2025-12",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8322.78,
+          "cumulative_pct": 66.46,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-01",
+          "return_pct": 3.61,
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "equity": 8623.55,
+          "cumulative_pct": 72.47,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-02",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 8623.55,
+          "cumulative_pct": 72.47,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-03",
+          "return_pct": 16.23,
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "equity": 10023.04,
+          "cumulative_pct": 100.46,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-04",
+          "return_pct": 0.0,
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "equity": 10023.04,
+          "cumulative_pct": 100.46,
+          "drawdown_pct": 0.0
+        },
+        {
+          "month": "2026-05",
+          "return_pct": -1.08,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 9914.74,
+          "cumulative_pct": 98.29,
+          "drawdown_pct": -1.08
+        },
+        {
+          "month": "2026-06",
+          "return_pct": -4.28,
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "equity": 9490.85,
+          "cumulative_pct": 89.82,
+          "drawdown_pct": -5.31
+        }
+      ],
+      "trades_per_year": 12.6,
+      "dte_label": "5-DTE index options"
     }
-  ],
-  "trades_per_year": 7.9
+  ]
 }
