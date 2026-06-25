@@ -17,7 +17,8 @@ export function apiBase(): string {
   return '/api';
 }
 
-async function get<T = any>(path: string, ms = 4500): Promise<T> {
+// Single attempt with an abort timeout.
+async function getOnce<T = any>(path: string, ms: number): Promise<T> {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -27,6 +28,27 @@ async function get<T = any>(path: string, ms = 4500): Promise<T> {
   } finally {
     clearTimeout(to);
   }
+}
+
+// Resilient GET: retries with backoff so a sleeping/cold-starting backend (which
+// can take 30–60s to wake on some hosts) is waited out instead of being reported
+// as "unreachable" on the first slow response. Each attempt gets a longer timeout.
+async function get<T = any>(path: string, opts?: { retries?: number }): Promise<T> {
+  const retries = opts?.retries ?? 3;
+  const timeouts = [6000, 12000, 20000, 20000]; // ms per attempt; grows for cold start
+  let lastErr: unknown;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await getOnce<T>(path, timeouts[Math.min(i, timeouts.length - 1)]);
+    } catch (e) {
+      lastErr = e;
+      if (i < retries) {
+        // brief backoff before retrying (0.8s, 1.6s, 2.4s …)
+        await new Promise((res) => setTimeout(res, 800 * (i + 1)));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -111,7 +133,7 @@ export async function loadSignals(): Promise<SignalsData> {
     const setups: Setup[] = (d.trades || []).map(mapTrade);
     await Promise.all(setups.map(async (st) => {
       try {
-        const p = await get('/scanner/price/' + encodeURIComponent(st.ticker), 3000);
+        const p = await get('/scanner/price/' + encodeURIComponent(st.ticker), { retries: 0 });
         if (p && p.price != null) { st.price = num(p.price); st.change = num(p.change); st.changePct = p.change_pct != null ? Math.abs(p.change_pct) : null; }
       } catch { /* non-fatal */ }
     }));
