@@ -146,6 +146,32 @@ export default function Landing() {
         .footrow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-top: 1px solid var(--border-subtle); padding: 40px 0; }
         .footrow .muted { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
         @media (max-width: 820px) { .features { grid-template-columns: 1fr; } .statband { grid-template-columns: repeat(2, 1fr); } }
+
+        /* ── Phones ──────────────────────────────────────────────────────────── */
+        @media (max-width: 560px) {
+          .wrap { padding: 0 18px; }
+          .navrow { height: 56px; }
+          .navlinks { display: none; }            /* free up room for the auth buttons */
+          .hero { padding: 56px 0 52px; }
+          .sub { font-size: 16px; margin-top: 20px; }
+          .ctas { margin-top: 26px; gap: 10px; }
+          .ctas :global(a), .ctas :global(button) { flex: 1 1 100%; }  /* full-width CTAs */
+          .strip { padding: 16px 0; }
+          .striprow { gap: 20px 24px; }
+          .striprow span { font-size: 11px; }
+          .block { padding: 56px 0; }
+          .features { margin-top: 28px; }
+          .feat { padding: 20px; }
+          .statband { padding: 26px 20px; gap: 14px 12px; }
+          .bignum { font-size: 40px; }
+          .cta-final { padding: 64px 0; }
+          .footrow { padding: 28px 0; }
+        }
+        /* very small phones */
+        @media (max-width: 380px) {
+          .statband { grid-template-columns: 1fr 1fr; padding: 22px 16px; }
+          .bignum { font-size: 34px; }
+        }
       `}</style>
     </div>
   );

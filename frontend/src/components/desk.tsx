@@ -130,13 +130,13 @@ export function DeskHeader({
 }) {
   const live = status ? status.live : false;
   return (
-    <header style={{ background: 'rgba(22,22,25,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-default)', position: 'sticky', top: 0, zIndex: 50 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '10px 24px' }}>
+    <header className="wt-deskhead" style={{ background: 'rgba(22,22,25,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-default)', position: 'sticky', top: 0, zIndex: 50 }}>
+      <div className="wt-deskhead-row">
         {/* Left: brand (links home) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, flex: 'none' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none' }} aria-label="Web Trace home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-mark.svg" width={32} height={32} alt="" />
+            <img src="/brand/logo-mark.svg" width={30} height={30} alt="" />
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, lineHeight: 1 }}>
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Web</span>
               <span className="wt-gradient-text" style={{ fontFamily: 'var(--font-brand)', fontSize: 17 }}>&nbsp;Trace</span>
@@ -145,8 +145,8 @@ export function DeskHeader({
           <SourceTag live={live} />
         </div>
 
-        {/* Center: tabs */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'center' }}>
+        {/* Center: tabs (drops to its own full-width row on phones) */}
+        <nav className="wt-deskhead-tabs">
           {tabs.map((t) => {
             const on = t.id === tab;
             return (
@@ -158,7 +158,7 @@ export function DeskHeader({
                   padding: '7px 16px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
                   background: on ? 'var(--accent-muted-2)' : 'transparent',
                   color: on ? 'var(--text-primary)' : 'var(--text-muted)',
-                  transition: 'background 140ms, color 140ms',
+                  transition: 'background 140ms, color 140ms', whiteSpace: 'nowrap',
                 }}
               >
                 {t.label}
@@ -390,7 +390,7 @@ export function Desk() {
   return (
     <div style={{ maxWidth: 'var(--container-wide)', margin: '0 auto' }}>
       <DeskHeader status={status} tab={tab} setTab={setTab} tabs={tabs} />
-      <div style={{ padding: '20px 24px 64px' }}>
+      <div className="wt-desk-content">
         {tab === 'signals' && <SignalsScreen />}
         {tab === 'performance' && <PerformanceScreen />}
         {tab === 'news' && <NewsScreen />}

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 
@@ -26,6 +26,22 @@ export const metadata: Metadata = {
   title: 'Web Trace Portfolio Management',
   description: 'Real options intelligence — credible setups, live execution levels, an honest backtested edge. By Will Kizer.',
   icons: { icon: '/brand/logo-mark.svg' },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Web Trace',
+  },
+  formatDetection: { telephone: false },
+};
+
+// Critical for iOS Safari: without width=device-width the page renders at desktop
+// width and zooms out. viewportFit=cover respects the iPhone notch / safe areas.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: '#161619',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
