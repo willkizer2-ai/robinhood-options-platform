@@ -105,6 +105,49 @@ def build_checklist(trade: dict):
     return items
 
 
+def build_overlays(trade: dict, bars: list, entry_index: int, direction: str):
+    """
+    Extract REAL chart-overlay levels from the trade's bars + score_breakdown:
+      • FVG zone (price box) — the 3-candle imbalance nearest entry
+      • Value Area High / Low / POC — from the engine's real volume profile
+    Returns a list of overlay dicts with price levels and bar positions.
+    Every number here is real (from bars or the engine), never invented.
+    """
+    bd = trade.get("score_breakdown", {})
+    overlays = []
+
+    # ── FVG zone (price box) ──────────────────────────────────────────────────
+    fvg = None
+    for i in range(max(2, entry_index - 15), min(entry_index + 1, len(bars))):
+        if i < 2:
+            continue
+        if direction == "CALL" and bars[i]["l"] > bars[i - 2]["h"]:
+            fvg = {"low": bars[i - 2]["h"], "high": bars[i]["l"], "bar": i}
+        elif direction == "PUT" and bars[i]["h"] < bars[i - 2]["l"]:
+            fvg = {"low": bars[i]["h"], "high": bars[i - 2]["l"], "bar": i}
+    if fvg and bd.get("fvg", 0) > 0:
+        overlays.append({
+            "type": "zone", "key": "fvg", "label": "FVG",
+            "price_high": round(fvg["high"], 2), "price_low": round(fvg["low"], 2),
+            "from_bar": max(0, fvg["bar"] - 2), "color": "fvg",
+        })
+
+    # ── Value Area levels (real, from the engine) ─────────────────────────────
+    va = bd.get("va_weekly") or bd.get("va_monthly") or {}
+    if va and bd.get("value_area", 0) > 0:
+        if va.get("val") is not None:
+            overlays.append({"type": "line", "key": "val", "label": "Value Area Low",
+                             "price": round(float(va["val"]), 2), "color": "va"})
+        if va.get("vah") is not None:
+            overlays.append({"type": "line", "key": "vah", "label": "Value Area High",
+                             "price": round(float(va["vah"]), 2), "color": "va"})
+        if va.get("poc") is not None:
+            overlays.append({"type": "line", "key": "poc", "label": "POC",
+                             "price": round(float(va["poc"]), 2), "color": "poc"})
+
+    return overlays
+
+
 def main():
     data = json.load(open(SRC))
     trades = sorted(data["trades"], key=lambda x: x["date"])
@@ -140,6 +183,7 @@ def main():
             "bars": bars,
             "entry_index": entry_index,
             "checklist": build_checklist(t),
+            "overlays": build_overlays(t, bars, entry_index, t["direction"]),
         })
         print(f"  {tid}: {len(bars)} {interval} bars, entry@{entry_index}, "
               f"score {t.get('score')}, {'WIN' if t['win'] else 'LOSS'}")

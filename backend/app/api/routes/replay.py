@@ -56,6 +56,7 @@ class ReplayBundle(BaseModel):
     bars: List[Bar] = []
     entry_index: int = 0
     checklist: List[ConfluenceItem] = []
+    overlays: List[dict] = []
 
 
 class ReplaySummary(BaseModel):

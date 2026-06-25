@@ -224,9 +224,10 @@ export function useLoad<T>(fn: () => Promise<T>, intervalMs?: number): T | null 
 export interface ConfluenceItem { key: string; name: string; weight: number; earned: number; met: boolean; desc: string; }
 export interface ReplayBar { t: string; o: number; h: number; l: number; c: number; }
 export interface ReplaySummary { id: string; ticker: string; date: string; direction: string; interval: string; is_intraday: boolean; win: boolean; pnl_pct: number; score?: number; }
+export interface ReplayOverlay { type: 'line' | 'zone'; key: string; label: string; price?: number; price_high?: number; price_low?: number; from_bar?: number; color?: string; }
 export interface ReplayBundle extends ReplaySummary {
   exit_type?: string; entry_price?: number; exit_price?: number; underlying_move?: number;
-  bars: ReplayBar[]; entry_index: number; checklist: ConfluenceItem[];
+  bars: ReplayBar[]; entry_index: number; checklist: ConfluenceItem[]; overlays?: ReplayOverlay[];
 }
 export interface ReplayList { maxScore: number; confluenceDefs: any[]; replays: ReplaySummary[]; live: boolean; }
 

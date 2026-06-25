@@ -28,6 +28,8 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
   const chartApi = useRef<any>(null);
   const seriesApi = useRef<any>(null);
   const markersApi = useRef<any>(null);
+  const entryLineRef = useRef<any>(null);
+  const overlayLinesRef = useRef<any[]>([]);
 
   // Load the replay bundle
   useEffect(() => {
@@ -43,8 +45,14 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
     const chart = createChart(chartRef.current, {
       layout: { background: { type: ColorType.Solid, color: C.ink950 }, textColor: C.muted, fontFamily: "'JetBrains Mono', monospace" },
       grid: { vertLines: { color: 'rgba(180,180,204,0.05)' }, horzLines: { color: 'rgba(180,180,204,0.05)' } },
-      rightPriceScale: { borderColor: C.border },
-      timeScale: { borderColor: C.border, timeVisible: data.interval === '2m', secondsVisible: false },
+      rightPriceScale: {
+        borderColor: C.border,
+        // Stretch the candles vertically: tight top/bottom margins make bars taller
+        // and easier to read, while still leaving room for entry/overlay labels.
+        scaleMargins: { top: 0.08, bottom: 0.08 },
+        autoScale: true,
+      },
+      timeScale: { borderColor: C.border, timeVisible: data.interval === '2m', secondsVisible: false, rightOffset: 3 },
       crosshair: { vertLine: { color: C.accent, labelBackgroundColor: C.ink700 }, horzLine: { color: C.accent, labelBackgroundColor: C.ink700 } },
       handleScroll: false, handleScale: false,
     });
@@ -58,7 +66,12 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
     const onResize = () => chart.applyOptions({ width: chartRef.current!.clientWidth });
     onResize();
     window.addEventListener('resize', onResize);
-    return () => { window.removeEventListener('resize', onResize); chart.remove(); chartApi.current = null; seriesApi.current = null; };
+    return () => {
+      window.removeEventListener('resize', onResize);
+      chart.remove();
+      chartApi.current = null; seriesApi.current = null; markersApi.current = null;
+      entryLineRef.current = null; overlayLinesRef.current = [];
+    };
   }, [data]);
 
   // Feed bars up to the playhead
@@ -70,9 +83,11 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
     }));
     seriesApi.current.setData(slice);
 
-    // Entry / stop / target markers, revealed only once the playhead reaches them
+    const pastEntryNow = playhead >= data.entry_index;
+
+    // ── Entry marker (single, at the entry bar) ──────────────────────────────
     const markers: any[] = [];
-    if (playhead >= data.entry_index) {
+    if (pastEntryNow) {
       markers.push({
         time: (data.entry_index + 1) as any,
         position: data.direction === 'CALL' ? 'belowBar' : 'aboveBar',
@@ -83,15 +98,44 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
     }
     if (markersApi.current) markersApi.current.setMarkers(markers);
 
-    // Entry price line once revealed
-    if (seriesApi.current.priceLines) {
-      // (lightweight-charts v5: createPriceLine on series)
+    // ── Entry price line — ONE persistent line, created once, never duplicated ──
+    if (pastEntryNow && data.entry_price != null) {
+      if (!entryLineRef.current) {
+        entryLineRef.current = seriesApi.current.createPriceLine({
+          price: data.entry_price, color: C.accent, lineWidth: 2,
+          lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'Entry',
+        });
+      }
+    } else if (entryLineRef.current) {
+      // Scrubbed back before entry — remove the line so it isn't shown prematurely
+      try { seriesApi.current.removePriceLine(entryLineRef.current); } catch {}
+      entryLineRef.current = null;
     }
-    if (playhead >= data.entry_index && data.entry_price && seriesApi.current.createPriceLine) {
-      try {
-        seriesApi.current.createPriceLine({ price: data.entry_price, color: C.accent, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'Entry' });
-      } catch {}
+
+    // ── Confluence overlays — keep the chart clean: FVG zone + Entry only. ────
+    // Value Area / POC remain in the checklist (with weights); drawing them as
+    // price lines too would collide with the Entry label, so we omit them here.
+    for (const ln of overlayLinesRef.current) { try { seriesApi.current.removePriceLine(ln); } catch {} }
+    overlayLinesRef.current = [];
+    if (pastEntryNow && data.overlays) {
+      for (const ov of data.overlays) {
+        if (ov.type === 'zone' && ov.price_high != null && ov.price_low != null) {
+          // The FVG zone, drawn as its two bounding lines, labeled.
+          const top = seriesApi.current.createPriceLine({
+            price: ov.price_high, color: 'rgba(180,180,204,0.6)', lineWidth: 1,
+            lineStyle: LineStyle.Solid, axisLabelVisible: true, title: 'FVG ▲',
+          });
+          const bot = seriesApi.current.createPriceLine({
+            price: ov.price_low, color: 'rgba(180,180,204,0.6)', lineWidth: 1,
+            lineStyle: LineStyle.Solid, axisLabelVisible: true, title: 'FVG ▼',
+          });
+          overlayLinesRef.current.push(top, bot);
+        }
+      }
     }
+
+    // ── Keep everything in view: fit content so as new candles form the scale
+    //    zooms to include them AND the entry/overlay levels stay visible. ──────
     chartApi.current?.timeScale().fitContent();
   }, [data, playhead]);
 
@@ -143,7 +187,7 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.7fr) minmax(0,1fr)', gap: 0 }} className="wt-replay-grid">
             {/* Chart + controls */}
             <div style={{ padding: 16, borderRight: `1px solid ${C.border}` }} className="wt-replay-chart">
-              <div ref={chartRef} style={{ width: '100%', height: 340, borderRadius: 10, overflow: 'hidden', border: `1px solid ${C.border}` }} />
+              <div ref={chartRef} style={{ width: '100%', height: 420, borderRadius: 10, overflow: 'hidden', border: `1px solid ${C.border}` }} />
               {/* Scrubber */}
               <input
                 type="range" min={0} max={data.bars.length - 1} value={playhead}
