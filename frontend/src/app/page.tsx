@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Radar, GitFork, LineChart, Newspaper, ShieldCheck, Gauge, ArrowRight, Play } from 'lucide-react';
 import { Button } from '@ds/components/core/Button';
 import { useLoad, loadPerformance } from '../lib/api';
+import ReplayLauncher from '../components/ReplayLauncher';
 
 const FEATURES = [
   { Icon: Radar, h: 'Real-time signal scanner', p: 'A real-time engine surfaces only data-backed 0DTE and multi-day setups — no mocks, no synthetic fills, ever.' },
@@ -63,7 +64,7 @@ export default function Landing() {
           <p className="sub">A reliable, instrument-grade desk that surfaces real options intelligence — credible setups, live execution levels, and an honest, backtested edge.</p>
           <div className="ctas">
             <Link href="/dashboard"><Button variant="primary" size="lg" rightIcon={<ArrowRight size={18} />}>Open the desk</Button></Link>
-            <Button variant="secondary" size="lg" leftIcon={<Play size={16} />}>Watch a session</Button>
+            <ReplayLauncher><Button variant="secondary" size="lg" leftIcon={<Play size={16} />}>Watch a session</Button></ReplayLauncher>
           </div>
         </div>
       </header>
