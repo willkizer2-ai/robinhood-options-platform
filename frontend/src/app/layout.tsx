@@ -46,6 +46,17 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const html = (
+    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${eagleLake.variable}`}>
+      <body>{children}</body>
+    </html>
+  );
+
+  // Only mount ClerkProvider when a publishable key is available, so the app
+  // renders normally before auth is configured in the deploy environment.
+  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (!pk) return html;
+
   return (
     <ClerkProvider
       appearance={{
@@ -67,9 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         },
       }}
     >
-      <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${eagleLake.variable}`}>
-        <body>{children}</body>
-      </html>
+      {html}
     </ClerkProvider>
   );
 }
