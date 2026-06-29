@@ -17,7 +17,7 @@ import os
 import datetime as dt
 from typing import List, Dict, Optional
 
-import requests
+import httpx
 
 TRADIER_BASE = "https://api.tradier.com/v1"
 # Conservative client-side guard mirroring the API's ~30-day intraday limit.
@@ -56,7 +56,7 @@ def fetch_1min_bars(symbol: str, trade_date: str) -> Optional[List[Dict]]:
         "session_filter": "open",
     }
     try:
-        r = requests.get(
+        r = httpx.get(
             f"{TRADIER_BASE}/markets/timesales",
             params=params,
             headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
