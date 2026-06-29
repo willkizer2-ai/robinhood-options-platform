@@ -20,37 +20,55 @@ from typing import List, Dict, Optional
 import httpx
 
 TRADIER_BASE = "https://api.tradier.com/v1"
-# Conservative client-side guard mirroring the API's ~30-day intraday limit.
-INTRADAY_MAX_AGE_DAYS = 28
+# Verified intraday lookback limits (the API rejects earlier start dates):
+#   1-minute → ~31 days   |   5-minute → ~59 days
+# Kept slightly conservative to avoid edge rejections.
+ONE_MIN_MAX_AGE_DAYS = 29
+FIVE_MIN_MAX_AGE_DAYS = 56
 
 
 def _token() -> str:
     return os.getenv("TRADIER_API_KEY", "")
 
 
-def intraday_available(trade_date: str) -> bool:
-    """True if the date is recent enough for Tradier to serve 1-minute bars."""
+def best_interval(trade_date: str) -> Optional[str]:
+    """
+    Return the finest Tradier interval whose history covers `trade_date`:
+      '1min' for very recent, '5min' for moderately recent, else None (→ daily).
+    """
     try:
         d = dt.date.fromisoformat(trade_date[:10])
     except Exception:
-        return False
-    return (dt.date.today() - d).days <= INTRADAY_MAX_AGE_DAYS
+        return None
+    age = (dt.date.today() - d).days
+    if age <= ONE_MIN_MAX_AGE_DAYS:
+        return "1min"
+    if age <= FIVE_MIN_MAX_AGE_DAYS:
+        return "5min"
+    return None
 
 
-def fetch_1min_bars(symbol: str, trade_date: str) -> Optional[List[Dict]]:
+def intraday_available(trade_date: str) -> bool:
+    """True if Tradier can serve any intraday (1m or 5m) bars for the date."""
+    return best_interval(trade_date) is not None
+
+
+def fetch_intraday_bars(symbol: str, trade_date: str) -> Optional[tuple]:
     """
-    Return real 1-minute bars for the regular session of `trade_date`,
-    or None if unavailable (no token, out of window, or API error).
-    Each bar: {t, o, h, l, c}.
+    Return (bars, interval_label) using the finest real Tradier interval available
+    for the date, or None. interval_label is '1m' or '5m'. Each bar: {t,o,h,l,c}.
     """
     token = _token()
-    if not token or not intraday_available(trade_date):
+    if not token:
+        return None
+    interval = best_interval(trade_date)
+    if not interval:
         return None
 
     day = trade_date[:10]
     params = {
         "symbol": symbol,
-        "interval": "1min",
+        "interval": interval,
         "start": f"{day} 09:30",
         "end": f"{day} 16:00",
         "session_filter": "open",
@@ -74,12 +92,23 @@ def fetch_1min_bars(symbol: str, trade_date: str) -> Optional[List[Dict]]:
         bars = []
         for b in raw:
             bars.append({
-                "t": str(b.get("time", ""))[11:16],  # HH:MM
+                "t": str(b.get("time", ""))[11:16],
                 "o": round(float(b["open"]), 2),
                 "h": round(float(b["high"]), 2),
                 "l": round(float(b["low"]), 2),
                 "c": round(float(b["close"]), 2),
             })
-        return bars if bars else None
+        if not bars:
+            return None
+        label = "1m" if interval == "1min" else "5m"
+        return bars, label
     except Exception:
         return None
+
+
+def fetch_1min_bars(symbol: str, trade_date: str) -> Optional[List[Dict]]:
+    """Back-compat: 1-minute bars only, or None. Prefer fetch_intraday_bars()."""
+    res = fetch_intraday_bars(symbol, trade_date)
+    if res and res[1] == "1m":
+        return res[0]
+    return None

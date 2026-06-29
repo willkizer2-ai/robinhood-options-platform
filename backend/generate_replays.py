@@ -20,9 +20,9 @@ from datetime import date, timedelta
 import yfinance as yf
 
 try:
-    from app.core.tradier_data import fetch_1min_bars, intraday_available
+    from app.core.tradier_data import fetch_intraday_bars, intraday_available
 except Exception:
-    fetch_1min_bars = None
+    fetch_intraday_bars = None
     def intraday_available(_d):  # type: ignore
         return False
 
@@ -54,37 +54,27 @@ def fetch_bars(ticker: str, entry_iso: str):
     """
     Return (bars, interval, entry_index) using the finest REAL timeframe available
     for the trade's age:
-      • Tradier 1-minute bars  → trades within Tradier's ~30-day window
-      • yfinance 2-minute bars → trades within ~58 days (intraday fallback)
+      • Tradier 1-minute bars  → trades within ~29 days
+      • Tradier 5-minute bars  → trades within ~56 days
       • yfinance daily bars    → older trades
-    All sources are real; bars are never synthesized.
+    All sources are real; bars are never synthesized. (yfinance 2-minute was
+    removed — Tradier 5-minute is the intraday fallback now.)
     """
     entry = date.fromisoformat(entry_iso[:10])
 
-    # ── 1-minute via Tradier (recent trades only) ────────────────────────────
-    if fetch_1min_bars and intraday_available(entry_iso):
-        bars = fetch_1min_bars(ticker, entry_iso)
-        if bars:
-            # entry index = first bar (intraday replay is the entry session itself)
-            return bars, "1m", min(20, len(bars) - 1)
+    # ── Intraday via Tradier (1m for recent, 5m for moderately recent) ───────
+    if fetch_intraday_bars and intraday_available(entry_iso):
+        res = fetch_intraday_bars(ticker, entry_iso)
+        if res:
+            bars, label = res  # label is '1m' or '5m'
+            return bars, label, min(20, len(bars) - 1)
 
-    # ── 2-minute via yfinance (within ~58 days) ──────────────────────────────
-    recent = (date.today() - entry).days <= INTRADAY_CUTOFF_DAYS
-    if recent:
-        start = (entry - timedelta(days=3)).isoformat()
-        end = (entry + timedelta(days=2)).isoformat()
-        df = yf.download(ticker, start=start, end=end, interval="2m",
-                         progress=False, auto_adjust=True)
-        interval = "2m"
-        if df is None or df.empty:
-            recent = False
-
-    if not recent:
-        start = (entry - timedelta(days=45)).isoformat()
-        end = (entry + timedelta(days=20)).isoformat()
-        df = yf.download(ticker, start=start, end=end, interval="1d",
-                         progress=False, auto_adjust=True)
-        interval = "1d"
+    # ── Daily via yfinance (older trades) ────────────────────────────────────
+    start = (entry - timedelta(days=45)).isoformat()
+    end = (entry + timedelta(days=20)).isoformat()
+    df = yf.download(ticker, start=start, end=end, interval="1d",
+                     progress=False, auto_adjust=True)
+    interval = "1d"
 
     if df is None or df.empty:
         return [], interval, -1
@@ -96,7 +86,7 @@ def fetch_bars(ticker: str, entry_iso: str):
     bars = []
     entry_index = -1
     for idx, (ts, row) in enumerate(df.iterrows()):
-        label = str(ts)[11:16] if interval == "2m" else str(ts)[:10]
+        label = str(ts)[:10]
         bars.append({
             "t": label,
             "o": round(float(row["Open"]), 2),
@@ -192,7 +182,7 @@ def main():
             "date": t["date"],
             "direction": t["direction"],
             "interval": interval,                 # "2m" or "1d"
-            "is_intraday": interval in ("2m", "1m"),
+            "is_intraday": interval in ("1m", "5m"),
             "win": t["win"],
             "pnl_pct": t["pnl_pct"],
             "exit_type": t.get("exit_type"),

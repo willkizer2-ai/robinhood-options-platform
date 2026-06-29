@@ -81,6 +81,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"AlertSystem init failed: {e}")
 
+    try:
+        from app.core.replay_scheduler import run_daily_replay_scheduler
+        tasks.append(asyncio.create_task(run_daily_replay_scheduler()))
+        logger.info("DailyReplayScheduler started.")
+    except Exception as e:
+        logger.error(f"DailyReplayScheduler init failed: {e}")
+
     # Store in app state for route access (may be None if init failed)
     app.state.market_scanner = market_scanner
     app.state.news_engine = news_engine
