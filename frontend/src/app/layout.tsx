@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
 // Web Trace webfonts (copy the .ttf files from design-system/assets/fonts/ into
@@ -46,8 +47,29 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${eagleLake.variable}`}>
-      <body>{children}</body>
-    </html>
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: '#b4b4cc',
+          colorBackground: '#161619',
+          colorInputBackground: '#232329',
+          colorInputText: '#f4f4f9',
+          colorText: '#f4f4f9',
+          colorTextSecondary: '#a9aab8',
+          colorNeutral: '#8a8b9c',
+          borderRadius: '10px',
+          fontFamily: "'Space Grotesk', system-ui, sans-serif",
+        },
+        elements: {
+          card: { backgroundColor: '#1c1c21', border: '1px solid rgba(180,180,204,0.14)' },
+          formButtonPrimary: { backgroundColor: '#b4b4cc', color: '#111114', textTransform: 'none' },
+          footerActionLink: { color: '#c7c9e0' },
+        },
+      }}
+    >
+      <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${eagleLake.variable}`}>
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }
