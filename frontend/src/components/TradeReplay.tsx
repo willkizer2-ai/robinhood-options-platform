@@ -52,7 +52,7 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
         scaleMargins: { top: 0.08, bottom: 0.08 },
         autoScale: true,
       },
-      timeScale: { borderColor: C.border, timeVisible: data.interval === '2m', secondsVisible: false, rightOffset: 3 },
+      timeScale: { borderColor: C.border, timeVisible: data.interval === '2m' || data.interval === '1m', secondsVisible: false, rightOffset: 3 },
       crosshair: { vertLine: { color: C.accent, labelBackgroundColor: C.ink700 }, horzLine: { color: C.accent, labelBackgroundColor: C.ink700 } },
       handleScroll: false, handleScale: false,
     });
@@ -170,7 +170,7 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
               <>
                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: C.muted }}>{fmtDate(data.date)}</span>
                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: C.accentText, border: `1px solid ${C.border}`, borderRadius: 999, padding: '2px 8px' }}>
-                  {data.is_intraday ? '2-min bars' : 'Daily bars'}
+                  {data.interval === '1m' ? '1-min bars' : data.interval === '2m' ? '2-min bars' : 'Daily bars'}
                 </span>
                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: C.gold, border: `1px solid rgba(230,180,80,0.34)`, borderRadius: 999, padding: '2px 8px' }}>Backtested</span>
               </>
@@ -223,7 +223,7 @@ export default function TradeReplay({ replayId, onClose }: { replayId: string; o
                 )}
               </div>
               <p style={{ margin: '10px 2px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: C.faint, lineHeight: 1.5 }}>
-                Real {data.is_intraday ? '2-minute' : 'daily'} price bars. Option P&amp;L modeled via Black-Scholes on the underlying. Backtested — not a live trade.
+                Real {data.interval === '1m' ? '1-minute' : data.interval === '2m' ? '2-minute' : 'daily'} price bars. Option P&amp;L modeled via Black-Scholes on the underlying. Backtested — not a live trade.
               </p>
             </div>
 

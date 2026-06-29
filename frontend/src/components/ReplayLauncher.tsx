@@ -62,7 +62,7 @@ export default function ReplayLauncher({ children }: { children: React.ReactNode
                         <span style={{ display: 'inline-flex', width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flex: 'none', background: 'rgba(180,180,204,0.10)', color: dirC }}><Icon size={16} /></span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 13.5, fontWeight: 600, color: C.text }}>{r.ticker} {r.direction}</div>
-                          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: C.muted }}>{fmtDate(r.date)} · {r.is_intraday ? '2-min' : 'daily'} · score {r.score ?? '—'}</div>
+                          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: C.muted }}>{fmtDate(r.date)} · {(r as any).interval === '1m' ? '1-min' : r.is_intraday ? '2-min' : 'daily'} · score {r.score ?? '—'}</div>
                         </div>
                         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, fontWeight: 700, color: r.win ? C.up : C.down }}>{r.win ? 'WIN' : 'LOSS'}</span>
                         <span style={{ display: 'inline-flex', color: C.accent }}><Play size={14} /></span>

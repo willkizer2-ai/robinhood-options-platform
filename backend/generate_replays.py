@@ -19,6 +19,13 @@ import os
 from datetime import date, timedelta
 import yfinance as yf
 
+try:
+    from app.core.tradier_data import fetch_1min_bars, intraday_available
+except Exception:
+    fetch_1min_bars = None
+    def intraday_available(_d):  # type: ignore
+        return False
+
 HERE = os.path.dirname(__file__)
 SRC = os.path.join(HERE, "backtest_results_v4.json")
 OUT = os.path.join(HERE, "app", "data_replays.json")
@@ -44,19 +51,33 @@ CONFLUENCE_DEFS = [
 
 
 def fetch_bars(ticker: str, entry_iso: str):
-    """Return (bars, interval, entry_index) using real data. 2m if recent, else daily."""
+    """
+    Return (bars, interval, entry_index) using the finest REAL timeframe available
+    for the trade's age:
+      • Tradier 1-minute bars  → trades within Tradier's ~30-day window
+      • yfinance 2-minute bars → trades within ~58 days (intraday fallback)
+      • yfinance daily bars    → older trades
+    All sources are real; bars are never synthesized.
+    """
     entry = date.fromisoformat(entry_iso[:10])
-    recent = (date.today() - entry).days <= INTRADAY_CUTOFF_DAYS
 
+    # ── 1-minute via Tradier (recent trades only) ────────────────────────────
+    if fetch_1min_bars and intraday_available(entry_iso):
+        bars = fetch_1min_bars(ticker, entry_iso)
+        if bars:
+            # entry index = first bar (intraday replay is the entry session itself)
+            return bars, "1m", min(20, len(bars) - 1)
+
+    # ── 2-minute via yfinance (within ~58 days) ──────────────────────────────
+    recent = (date.today() - entry).days <= INTRADAY_CUTOFF_DAYS
     if recent:
-        # Real 2-minute bars: a tight window around the entry day
         start = (entry - timedelta(days=3)).isoformat()
         end = (entry + timedelta(days=2)).isoformat()
         df = yf.download(ticker, start=start, end=end, interval="2m",
                          progress=False, auto_adjust=True)
         interval = "2m"
         if df is None or df.empty:
-            recent = False  # fall through to daily
+            recent = False
 
     if not recent:
         start = (entry - timedelta(days=45)).isoformat()
@@ -83,7 +104,6 @@ def fetch_bars(ticker: str, entry_iso: str):
             "l": round(float(row["Low"]), 2),
             "c": round(float(row["Close"]), 2),
         })
-        # entry index: first bar on/after the entry date
         if entry_index == -1 and str(ts)[:10] >= entry_iso[:10]:
             entry_index = idx
 
@@ -172,7 +192,7 @@ def main():
             "date": t["date"],
             "direction": t["direction"],
             "interval": interval,                 # "2m" or "1d"
-            "is_intraday": interval == "2m",
+            "is_intraday": interval in ("2m", "1m"),
             "win": t["win"],
             "pnl_pct": t["pnl_pct"],
             "exit_type": t.get("exit_type"),
