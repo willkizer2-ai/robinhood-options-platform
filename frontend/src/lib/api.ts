@@ -242,3 +242,16 @@ export async function loadReplay(id: string): Promise<ReplayBundle | null> {
   try { return await get('/replay/' + encodeURIComponent(id)) as ReplayBundle; }
   catch { return null; }
 }
+
+// ── Valuation (fundamental analysis tool) ──────────────────────────────────────
+export interface ValComponent { available: boolean; score?: number; reason?: string; coming_soon?: boolean; metrics?: { name: string; value: number; score: number }[]; }
+export interface ValuationResult {
+  ok: boolean; symbol: string; name?: string; sector?: string;
+  current_price?: number | null; composite_score?: number; read?: string;
+  components?: { relative: ValComponent; quality: ValComponent; dcf: ValComponent };
+  weights?: Record<string, number>; error?: string; cached?: boolean; disclaimer?: string;
+}
+export async function loadValuation(symbol: string): Promise<ValuationResult> {
+  try { return await get('/valuation/' + encodeURIComponent(symbol.trim().toUpperCase())) as ValuationResult; }
+  catch (e: any) { return { ok: false, symbol, error: 'Could not fetch valuation. Check the ticker and try again.' }; }
+}

@@ -18,7 +18,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from app.api.routes import trades, news, scanner, alerts, research, health, performance, replay
+from app.api.routes import trades, news, scanner, alerts, research, health, performance, replay, valuation
 from app.core.scanner import MarketScanner
 from app.core.news_engine import NewsIntelligenceEngine
 from app.core.research_agent import OvernightResearchAgent
@@ -132,6 +132,7 @@ app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(research.router,     prefix="/api/research",     tags=["Research"])
 app.include_router(performance.router,  prefix="/api/performance",  tags=["Performance"])
 app.include_router(replay.router,       prefix="/api/replay",       tags=["Replay"])
+app.include_router(valuation.router,    prefix="/api/valuation",    tags=["Valuation"])
 
 
 if __name__ == "__main__":
