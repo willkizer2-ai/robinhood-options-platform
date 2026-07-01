@@ -60,6 +60,8 @@ yarn-error.log*
 #  DEPLOYMENT ARTIFACTS
 # ════════════════════════════════════════════════════
 .vercel/
+# Allow the non-sensitive project config (project ID + org ID only, no secrets)
+!frontend/.vercel/project.json
 
 # ════════════════════════════════════════════════════
 #  BACKTEST RESULTS (large generated files)

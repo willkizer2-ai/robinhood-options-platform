@@ -484,10 +484,23 @@ def compute_v4_stats(trades: List[V4Trade], label: str = "V4") -> Dict:
         if dd > max_dd:
             max_dd = dd
 
-    # Sharpe ratio (annualized)
+    # Sharpe ratio (annualized) — annualize by ACTUAL trade frequency, not sqrt(252).
+    # sqrt(252) annualizes *daily* returns; these are per-TRADE returns. Using
+    # sqrt(252) on ~8 trades/year overstates Sharpe by ~sqrt(252/8) ≈ 5.6x.
     if len(trades) > 1:
-        pnls   = [t.pnl_pct for t in trades]
-        sr_ann = (float(np.mean(pnls)) - RISK_FREE / 252) / (float(np.std(pnls)) + 1e-9) * math.sqrt(252)
+        pnls = [t.pnl_pct for t in trades]
+        # Estimate trades per year from the date span of the trade set
+        try:
+            _ds = sorted(t.date[:10] for t in trades)
+            from datetime import date as _date
+            _first = _date.fromisoformat(_ds[0])
+            _last  = _date.fromisoformat(_ds[-1])
+            _years = max((_last - _first).days / 365.25, 0.5)
+            _tpy   = len(trades) / _years
+        except Exception:
+            _tpy = len(trades) / 2.0  # fallback: assume the 2yr window
+        sr_per_trade = (float(np.mean(pnls)) - RISK_FREE / max(_tpy, 1e-9)) / (float(np.std(pnls, ddof=1)) + 1e-9)
+        sr_ann = sr_per_trade * math.sqrt(max(_tpy, 1e-9))
     else:
         sr_ann = 0.0
 

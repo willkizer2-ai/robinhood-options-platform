@@ -17,7 +17,9 @@ httpx==0.27.2
 # Data
 pandas==2.2.3
 numpy>=1.26.4,<3.0   # 1.26.x for Py3.11/3.12; allows 2.x on Py3.13+
+scipy>=1.11.0         # required by V4 ICT engine (Black-Scholes premium calc)
 pytz==2024.2
+yfinance>=0.2.54      # real market data — lazy-imported in scanner & routes
 
 # Optional NLP (lightweight)
 # transformers==4.45.0  # Uncomment for advanced NLP

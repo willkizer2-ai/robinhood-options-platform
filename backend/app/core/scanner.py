@@ -150,12 +150,11 @@ class MarketScanner:
         return (9 * 60) <= t <= (16 * 60 + 30)
 
     def _in_entry_window(self) -> bool:
-        """True if current ET time is within the Judas Swing entry window (9:35–9:42 AM).
+        """True if current ET time is within the 0DTE entry window (9:30 AM–11:00 AM).
 
-        The scanner runs from 9:25 AM to gather open-range data and detect the
-        Judas Swing fake move. Once the real directional impulse confirms (~9:35),
-        the engine posts one 0DTE setup per viable ticker during this 7-minute
-        window only. No new entries are generated after 9:42 AM.
+        The scanner begins posting 0DTE setups at market open (9:30 AM ET) and
+        stops accepting new entries at 11:00 AM ET.  Existing cards posted during
+        this window remain visible on the dashboard until 4:30 PM ET.
 
         V4 daily-bar setups are not gated by this check.
         In DEBUG mode the gate is bypassed so the dashboard stays populated.
@@ -168,8 +167,8 @@ class MarketScanner:
         if now.weekday() >= 5:  # Sat/Sun
             return False
         t = now.hour * 60 + now.minute
-        # 9:35 AM – 9:42 AM ET
-        return (9 * 60 + 35) <= t < (9 * 60 + 42)
+        # 9:30 AM – 11:00 AM ET
+        return (9 * 60 + 30) <= t < (11 * 60)
 
     async def scan_all_tickers(self):
         """Scan all watchlist tickers concurrently, plus daily V4 index ICT scan."""
@@ -253,6 +252,22 @@ class MarketScanner:
         if new_setups > 0:
             logger.info(f"✅ Found {new_setups} new setups. Total active: {len(self.active_setups)}")
 
+        # ── Minimum daily setups guarantee ────────────────────────────────────────
+        # Rule: at least MIN_DAILY_SETUPS (default 3) real 0DTE trade cards must
+        # appear during the 9:30–11:00 AM ET entry window each session.
+        # When the strict primary scan yields fewer, backfill with secondary setups
+        # that use the same real yfinance data but relaxed thresholds so that on
+        # quiet / range-bound mornings the board always surfaces the 3 best
+        # available opportunities. Secondary cards are clearly labelled.
+        if in_window:
+            _0dte_count = sum(
+                1 for v in self.active_setups.values()
+                if not v.strategy.value.startswith("V4_")
+            )
+            if _0dte_count < settings.MIN_DAILY_SETUPS:
+                shortfall = settings.MIN_DAILY_SETUPS - _0dte_count
+                await self._backfill_secondary_setups(_today_et, shortfall)
+
     async def scan_ticker(self, ticker: str) -> Optional[TradeSetup]:
         """Scan a single ticker for options setups."""
         try:
@@ -313,21 +328,220 @@ class MarketScanner:
             logger.debug(f"Error scanning {ticker}: {e}")
             return None
 
+    async def _backfill_secondary_setups(self, today_et: date, shortfall: int) -> None:
+        """
+        Secondary scan — fires only when the primary scan yields fewer than
+        MIN_DAILY_SETUPS (default 3) 0DTE cards during the entry window.
+
+        Uses real yfinance data with relaxed V2 thresholds:
+          Volume      >= 1.2x   (primary: >= 2.0x)
+          RSI (CALL)  40–72     (primary: 46–66)
+          RSI (PUT)   28–60     (primary: 34–54)
+          MACD        not opposing direction (neutral is accepted)
+          ADX/IV/ORB/MoveEdge: not required (surface as yellow flags if present)
+
+        Secondary cards are clearly labelled with a risk note and a confidence
+        score capped at 0.72 so they are never confused with primary setups.
+        """
+        # Only 0DTE-eligible tickers can fill the board; scan the full eligible set
+        eligible = list(self.dte_strategy.ZERO_DTE_ELIGIBLE)
+        candidates: list[tuple[float, "TradeSetup"]] = []
+
+        for ticker in eligible:
+            # Skip tickers that already have a primary or secondary setup today
+            if self._daily_fired.get(ticker) == today_et:
+                continue
+            key_call = f"{ticker}_CALL"
+            key_put  = f"{ticker}_PUT"
+            if key_call in self.active_setups or key_put in self.active_setups:
+                continue
+
+            try:
+                ctx = await self.get_market_context(ticker)
+                if not ctx:
+                    continue
+
+                # Minimum: clear trend, at least marginal volume
+                if ctx.volume_ratio < 1.2:
+                    continue
+                if ctx.market_structure not in ("uptrend", "downtrend"):
+                    continue
+
+                direction = (Direction.CALL if ctx.market_structure == "uptrend"
+                             else Direction.PUT)
+
+                # RSI: wider but still sensible zones
+                if ctx.rsi_14 is not None:
+                    if direction == Direction.CALL and not (40.0 <= ctx.rsi_14 <= 72.0):
+                        continue
+                    if direction == Direction.PUT  and not (28.0 <= ctx.rsi_14 <= 60.0):
+                        continue
+
+                # MACD must not actively oppose the direction
+                if direction == Direction.CALL and ctx.macd_signal == "bearish_cross":
+                    continue
+                if direction == Direction.PUT  and ctx.macd_signal == "bullish_cross":
+                    continue
+
+                # Build option contract
+                contract = self.dte_strategy._select_contract(ticker, ctx, direction)
+                if not contract:
+                    continue
+
+                # ── Simplified real-signal confidence score ────────────────────
+                score = 0.0
+
+                # Volume (max 15)
+                if ctx.volume_ratio >= 2.0:   score += 15
+                elif ctx.volume_ratio >= 1.5:  score += 10
+                elif ctx.volume_ratio >= 1.2:  score += 6
+
+                # VWAP side (max 10)
+                vwap_ok = (
+                    (direction == Direction.CALL and ctx.price_vs_vwap > 0.05) or
+                    (direction == Direction.PUT  and ctx.price_vs_vwap < -0.05)
+                )
+                if vwap_ok:
+                    score += 10
+
+                # Market structure aligned (max 12) — already confirmed above
+                score += 12
+
+                # MACD in direction (max 8)
+                if ctx.macd_signal != "neutral":
+                    score += 8
+
+                # RSI quality (max 8): tight zone gets full credit, wide zone partial
+                if ctx.rsi_14 is not None:
+                    in_tight = (
+                        (direction == Direction.CALL and 46.0 <= ctx.rsi_14 <= 66.0) or
+                        (direction == Direction.PUT  and 34.0 <= ctx.rsi_14 <= 54.0)
+                    )
+                    score += 8 if in_tight else 3
+
+                # ADX if available (max 5)
+                if ctx.adx_14 is not None and ctx.adx_14 >= 22:
+                    score += 5
+
+                # Time (max 10) — within entry window by construction
+                score += 8
+
+                # Options baseline (max 5)
+                score += 4
+
+                confidence = round(min(score / 100.0, 0.72), 3)  # cap: never mistaken for primary
+                if confidence < 0.48:
+                    continue
+
+                # ── Build reasoning bullets ────────────────────────────────────
+                bullets: list[str] = [
+                    f"📊 Best Available Setup — secondary tier "
+                    f"({ctx.volume_ratio:.1f}x vol, {ctx.market_structure})"
+                ]
+                if vwap_ok:
+                    bullets.append(
+                        f"✅ Price {ctx.price_vs_vwap:+.2f}% from VWAP — correct side"
+                    )
+                if ctx.macd_signal != "neutral":
+                    bullets.append(
+                        f"✅ MACD {ctx.macd_signal.replace('_', ' ')} — direction confirmed"
+                    )
+                if ctx.rsi_14 is not None:
+                    bullets.append(f"📈 RSI {ctx.rsi_14:.0f} — within tradeable zone")
+                if ctx.adx_14 is not None:
+                    adx_ok = ctx.adx_14 >= 22
+                    bullets.append(
+                        f"{'✅' if adx_ok else '⚠️'} ADX {ctx.adx_14:.1f}"
+                        f" — {'trend confirmed' if adx_ok else 'weak trend, size down'}"
+                    )
+
+                reasoning = TradeReasoning(
+                    bullet_points=bullets,
+                    technical_context=(
+                        f"{ctx.market_structure.upper()} | VWAP {ctx.price_vs_vwap:+.2f}% | "
+                        f"RSI {ctx.rsi_14 or 'N/A'} | Vol {ctx.volume_ratio:.1f}x"
+                    ),
+                    risk_warning=(
+                        "Secondary setup — not all V2.1 gates confirmed. "
+                        "Reduce contract size vs primary setups. "
+                        "Primary golden-hour trades always take priority."
+                    ),
+                    dont_chase_warning=False,
+                )
+
+                # 4:00 PM ET expiry (same as primary 0DTE)
+                import pytz as _ptz
+                _et_tz   = _ptz.timezone("America/New_York")
+                _now_et  = datetime.now(_et_tz)
+                _exp_et  = _now_et.replace(hour=16, minute=0, second=0, microsecond=0)
+                _exp_utc = _exp_et.astimezone(_ptz.utc).replace(tzinfo=None)
+
+                setup = TradeSetup(
+                    id=f"sec_{ticker}_{direction.value}_{today_et.strftime('%Y%m%d')}",
+                    ticker=ticker,
+                    direction=direction,
+                    strategy=Strategy.MOMENTUM,
+                    confidence_score=confidence,
+                    decision=TradeDecision.DO_TAKE,
+                    news_catalyst_tag=None,
+                    contract=contract,
+                    market_context=ctx,
+                    reasoning=reasoning,
+                    detected_at=datetime.utcnow(),
+                    expires_at=_exp_utc,
+                    is_golden_hour=False,
+                    golden_hour_filters={
+                        "iv_rank_ok":    ctx.iv_rank is not None and ctx.iv_rank < 0.65,
+                        "volume_ok":     ctx.volume_ratio >= 2.0,
+                        "atr_premium_ok": False,
+                        "adx_ok":        ctx.adx_14 is not None and ctx.adx_14 >= 22,
+                        "orb_ok":        ctx.orb_confirmed is True,
+                        "move_edge_ok":  False,
+                        "confidence_ok": confidence >= 0.80,
+                        "decision_ok":   True,
+                    },
+                )
+                setup.execution = self._build_execution_instructions(setup, ctx)
+                candidates.append((confidence, setup))
+
+            except Exception as exc:
+                logger.debug(f"Secondary scan error for {ticker}: {exc}")
+
+        # Sort best → worst, take only as many as needed
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        added = 0
+        for conf, setup in candidates:
+            if added >= shortfall:
+                break
+            key = f"{setup.ticker}_{setup.direction.value}"
+            if key not in self.active_setups:
+                self.active_setups[key] = setup
+                self._daily_fired[setup.ticker] = today_et
+                added += 1
+                logger.info(
+                    f"📋 Secondary setup: {setup.ticker} {setup.direction.value} "
+                    f"| conf {conf:.0%} | vol {setup.market_context.volume_ratio:.1f}x"
+                )
+
+        if added:
+            total_0dte = sum(
+                1 for v in self.active_setups.values()
+                if not v.strategy.value.startswith("V4_")
+            )
+            logger.info(
+                f"📋 Backfilled {added} secondary setup(s). "
+                f"Total 0DTE cards: {total_0dte} / {settings.MIN_DAILY_SETUPS} minimum"
+            )
+
     async def get_market_context(self, ticker: str) -> Optional[MarketContext]:
         """
         Fetch market context:
-        • DEBUG mode  → mock profile with REAL current price injected via fast_info.
-          The seeded mock ensures the decision engine always sees qualified setups
-          so the dashboard remains populated even before/after market hours.
-        • Production  → full yfinance real data (price + indicators),
-          then Polygon.io, then mock as last resort.
+        • Always uses real yfinance data (price + indicators).
+          DEBUG flag only controls time-gating (market hours / entry window),
+          never data authenticity. Mock context is never served in any mode.
+        • Falls back to Polygon.io if configured.
+        • Returns None (ticker skipped) when no real data is available.
         """
-        if settings.DEBUG:
-            # Run the (blocking) real-price fetch in a thread pool, then apply mock profile
-            return await asyncio.get_event_loop().run_in_executor(
-                None, self._mock_market_context, ticker
-            )
-
         # ── Try yfinance (real data, always available) ────────────────────────
         ctx = await self._yfinance_market_context(ticker)
         if ctx:
@@ -358,9 +572,11 @@ class MarketScanner:
             except Exception:
                 pass
 
-        # ── Last resort: seeded mock (prices will be stale but structure valid) ─
-        logger.warning(f"yfinance unavailable for {ticker}, using mock")
-        return self._mock_market_context(ticker)
+        # ── No real data available — return None rather than serving mock data ─
+        # Mock context is intentionally removed from the production path so the
+        # dashboard never shows fabricated prices or synthetic technical profiles.
+        logger.warning(f"yfinance unavailable for {ticker} — skipping (no mock fallback in production)")
+        return None
 
     # ── yfinance real-data fetcher ─────────────────────────────────────────────
 
@@ -389,8 +605,21 @@ class MarketScanner:
             tk   = yf.Ticker(yfTicker)
             info = tk.fast_info
 
-            current_price = (info.get("lastPrice") or
-                             info.get("regularMarketPrice") or 0.0)
+            # FastInfo is NOT a dict — use getattr, guard against NaN
+            def _safe(fi, *attrs):
+                import math
+                for a in attrs:
+                    try:
+                        v = getattr(fi, a, None)
+                        if v is not None:
+                            f = float(v)
+                            if not math.isnan(f) and f > 0:
+                                return f
+                    except (TypeError, ValueError):
+                        continue
+                return None
+
+            current_price = _safe(info, "last_price", "regular_market_price") or 0.0
             if not current_price or current_price <= 0:
                 return None
 
@@ -471,6 +700,42 @@ class MarketScanner:
             rough_prem         = max(proj_intrin * 0.55 + current_price * 0.003, 0.10)
             expected_move_edge = round((proj_intrin / rough_prem) - 1.0, 3)
 
+            # ── Intraday override (active market hours only) ──────────────────────
+            # During the 9:30-11:00 AM entry window the daily-bar volume for today
+            # is a tiny partial-day figure (5-90 min of trading) that consistently
+            # produces volume_ratio << 1.0 and fails the >=2.0 gate.  Pull 5-minute
+            # intraday bars and replace volume_ratio with a time-normalised figure
+            # (today's accumulated vol / expected vol at this time of day).
+            # Also replaces the (H+L+C)/3 VWAP proxy with true cumulative intraday VWAP.
+            try:
+                import pytz as _ptz
+                _et     = _ptz.timezone("America/New_York")
+                _now_et = datetime.now(_et)
+                _t_min  = _now_et.hour * 60 + _now_et.minute
+                # Only run during regular session on weekdays
+                if _now_et.weekday() < 5 and _t_min >= 9 * 60 + 30:
+                    intraday = tk.history(period="1d", interval="5m")
+                    if not intraday.empty and len(intraday) >= 2:
+                        # True cumulative VWAP from session open
+                        tp_intra = (intraday["High"] + intraday["Low"] + intraday["Close"]) / 3
+                        cum_vol  = intraday["Volume"].cumsum()
+                        cum_tpv  = (tp_intra * intraday["Volume"]).cumsum()
+                        if float(cum_vol.iloc[-1]) > 0:
+                            vwap          = round(float(cum_tpv.iloc[-1] / cum_vol.iloc[-1]), 2)
+                            price_vs_vwap = round((current_price - vwap) / vwap * 100, 2)
+
+                        # Time-normalised volume ratio:
+                        # ratio = (volume traded so far today) / (expected volume by now)
+                        # expected = 20-day avg daily vol x (elapsed minutes / 390)
+                        elapsed_min = _t_min - (9 * 60 + 30)  # minutes since 9:30 AM open
+                        if elapsed_min >= 1 and avg_vol_20d > 0:
+                            expected_frac = min(elapsed_min / 390.0, 1.0)
+                            intra_vol     = int(intraday["Volume"].sum())
+                            volume_ratio  = round(intra_vol / (avg_vol_20d * expected_frac), 2)
+                            today_vol     = intra_vol
+            except Exception:
+                pass  # fall back to daily-bar estimates already computed above
+
             return MarketContext(
                 ticker=ticker,
                 current_price=round(float(current_price), 2),
@@ -518,7 +783,18 @@ class MarketScanner:
 
     @staticmethod
     def _macd_signal(closes: "np.ndarray") -> str:
-        """Returns 'bullish_cross', 'bearish_cross', or 'neutral'."""
+        """
+        Returns the current MACD position relative to its signal line.
+          'bullish_cross' = MACD is above the signal line (bullish regime)
+          'bearish_cross' = MACD is below the signal line (bearish regime)
+          'neutral'       = insufficient data
+
+        Direction-based detection (not a single-bar crossover check) gives a
+        stable trend-regime reading on daily bars.  A crossover on daily data
+        happens ~1-2x per month per ticker; using direction lets the scanner
+        confirm the prevailing regime on every scan without being blocked by
+        the rarity of exact-cross timing.
+        """
         import numpy as np
         def ema(arr, n):
             k = 2 / (n + 1)
@@ -528,15 +804,14 @@ class MarketScanner:
             return np.array(e)
         if len(closes) < 35:
             return "neutral"
-        ema12   = ema(closes, 12)
-        ema26   = ema(closes, 26)
-        macd    = ema12 - ema26
-        signal  = ema(macd, 9)
-        diff_now  = macd[-1]  - signal[-1]
-        diff_prev = macd[-2]  - signal[-2]
-        if diff_prev <= 0 < diff_now:
+        ema12  = ema(closes, 12)
+        ema26  = ema(closes, 26)
+        macd   = ema12 - ema26
+        signal = ema(macd, 9)
+        diff   = float(macd[-1] - signal[-1])
+        if diff > 0:
             return "bullish_cross"
-        if diff_prev >= 0 > diff_now:
+        elif diff < 0:
             return "bearish_cross"
         return "neutral"
 
@@ -591,140 +866,36 @@ class MarketScanner:
 
     def _real_price(self, ticker: str) -> Optional[float]:
         """
-        Fetch only the current price via yfinance fast_info (lightweight, < 1 s).
-        Returns None on failure so caller can fall back to hardcoded estimate.
+        Fetch current price via yfinance. Tries fast_info first (fast),
+        then falls back to history() which works on weekends and after-hours.
+        Returns None only if both methods fail.
         """
+        import math
         try:
             import yfinance as yf
             yfTicker = {"SPX": "^GSPC", "VIX": "^VIX",
                         "SQQQ": "SQQQ", "TQQQ": "TQQQ"}.get(ticker, ticker)
-            fi = yf.Ticker(yfTicker).fast_info
-            p  = fi.get("lastPrice") or fi.get("regularMarketPrice")
-            return float(p) if p and p > 0 else None
+            tk = yf.Ticker(yfTicker)
+            fi = tk.fast_info
+            # FastInfo is NOT a dict — must use attribute access, not .get()
+            for attr in ("last_price", "regular_market_price"):
+                try:
+                    v = getattr(fi, attr, None)
+                    if v is not None:
+                        f = float(v)
+                        if not math.isnan(f) and f > 0:
+                            return f
+                except (TypeError, ValueError):
+                    continue
+            # Fallback: most-recent close from history (reliable on weekends)
+            hist = tk.history(period="5d")
+            if not hist.empty:
+                p = float(hist["Close"].iloc[-1])
+                if not math.isnan(p) and p > 0:
+                    return p
+            return None
         except Exception:
             return None
-
-    def _mock_market_context(self, ticker: str) -> MarketContext:
-        """
-        Development / fallback context.
-        Pulls REAL current price from yfinance fast_info (one quick call),
-        then overlays a deterministic seeded technical profile so the
-        dashboard always shows plausible, actionable callouts.
-
-        Profile breakdown (seed % 4):
-          0 = Golden Hour CALL  — all 6 V2.1 gates pass
-          1 = Golden Hour PUT   — all 6 V2.1 gates pass
-          2 = Normal DO_TAKE    — passes most basic gates
-          3 = Weak / filtered   — fails multiple gates
-        """
-        import random
-        import hashlib
-
-        # ── Approximate current prices (April 2026) — used only when
-        #    yfinance fast_info fails for a ticker ─────────────────────────────
-        prices = {
-            "SPY": 540.00, "QQQ": 460.00, "AAPL": 210.00,
-            "TSLA": 395.00, "NVDA": 870.00, "MSFT": 395.00,
-            "META": 550.00, "AMD": 155.00, "AMZN": 215.00,
-            "GOOGL": 175.00, "NFLX": 1050.00, "COIN": 195.00,
-            "PLTR": 100.00, "SOFI": 16.50, "IWM": 190.00,
-            "XLF": 48.00, "XLE": 88.00, "RIVN": 12.00,
-            "MARA": 18.00, "SQQQ": 9.00, "TQQQ": 55.00,
-            "SPX": 5400.00, "VIX": 22.00,
-        }
-
-        # Include today's date in the seed so mock profiles rotate daily
-        seed = int(hashlib.md5(f"{ticker}_{date.today().isoformat()}".encode()).hexdigest()[:8], 16)
-        rng  = random.Random(seed)
-
-        # Prefer real price; fall back to hardcoded estimate
-        real_p     = self._real_price(ticker)
-        base_price = real_p if real_p else prices.get(ticker, 100.0)
-
-        # Small intraday noise on the real price
-        price = base_price * (1 + rng.uniform(-0.008, 0.008))
-
-        # 4 profiles (seed % 4)
-        # 0 = Golden Hour CALL   — all 6 V2.1 gates pass
-        # 1 = Golden Hour PUT    — all 6 V2.1 gates pass
-        # 2 = Normal momentum    — passes most basic gates, not all V2.1
-        # 3 = Weak/reversal      — fails multiple gates
-        profile = seed % 4
-
-        if profile == 0:
-            volume_ratio  = rng.uniform(2.2, 3.2)
-            rsi           = rng.uniform(50, 63)
-            macd          = "bullish_cross"
-            structure     = "uptrend"
-            vwap          = price * rng.uniform(0.986, 0.995)
-            adx           = rng.uniform(24, 38)
-            iv_rank       = rng.uniform(0.28, 0.54)
-            orb_confirmed = True
-        elif profile == 1:
-            volume_ratio  = rng.uniform(2.2, 3.2)
-            rsi           = rng.uniform(37, 50)
-            macd          = "bearish_cross"
-            structure     = "downtrend"
-            vwap          = price * rng.uniform(1.005, 1.014)
-            adx           = rng.uniform(24, 38)
-            iv_rank       = rng.uniform(0.28, 0.54)
-            orb_confirmed = True
-        elif profile == 2:
-            volume_ratio  = rng.uniform(1.7, 2.3)
-            rsi           = rng.uniform(48, 65)
-            macd          = rng.choice(["bullish_cross", "neutral"])
-            structure     = rng.choice(["uptrend", "neutral"])
-            vwap          = price * rng.uniform(0.993, 1.002)
-            adx           = rng.uniform(17, 26)
-            iv_rank       = rng.uniform(0.45, 0.72)
-            orb_confirmed = rng.choice([True, False])
-        else:
-            volume_ratio  = rng.uniform(1.3, 2.0)
-            rsi           = rng.uniform(68, 78)
-            macd          = rng.choice(["bearish_cross", "neutral"])
-            structure     = rng.choice(["uptrend", "neutral"])
-            vwap          = price * rng.uniform(0.995, 1.005)
-            adx           = rng.uniform(12, 21)
-            iv_rank       = rng.uniform(0.58, 0.82)
-            orb_confirmed = False
-
-        volume        = int(volume_ratio * 1_200_000 * rng.uniform(0.9, 1.1))
-        price_vs_vwap = round((price - vwap) / vwap * 100, 2)
-
-        # ATR: ~1.5-2.5% of price (realistic 14-day daily range)
-        atr = round(price * rng.uniform(0.015, 0.025), 2)
-
-        # Expected move edge: if stock moves by 1 ATR in signal direction,
-        # project option intrinsic vs estimated premium
-        inc = 5.0 if price >= 500 else 1.0 if price >= 100 else 0.5
-        if structure == "uptrend":
-            strike_est    = round(round(price * 1.005 / inc) * inc, 2)
-            proj_intrin   = max(price + atr - strike_est, 0.0)
-        else:
-            strike_est    = round(round(price * 0.995 / inc) * inc, 2)
-            proj_intrin   = max(strike_est - (price - atr), 0.0)
-        rough_prem        = max(proj_intrin * 0.55 + price * 0.003, 0.10)
-        expected_move_edge = round((proj_intrin / rough_prem) - 1.0, 3)
-
-        return MarketContext(
-            ticker=ticker,
-            current_price=round(price, 2),
-            vwap=round(vwap, 2),
-            volume=volume,
-            avg_volume=1_200_000,
-            volume_ratio=round(volume_ratio, 2),
-            price_vs_vwap=price_vs_vwap,
-            rsi_14=round(rsi, 1),
-            macd_signal=macd,
-            market_structure=structure,
-            support_level=round(price * 0.98, 2),
-            resistance_level=round(price * 1.02, 2),
-            adx_14=round(adx, 1),
-            iv_rank=round(iv_rank, 3),
-            atr=atr,
-            orb_confirmed=orb_confirmed,
-            expected_move_edge=expected_move_edge,
-        )
 
     def _build_execution_instructions(
         self, setup: TradeSetup, ctx: MarketContext

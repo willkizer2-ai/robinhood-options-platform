@@ -1,0 +1,48 @@
+/* ── Web Trace — Radii, Shadows, Blur, Motion ────────────────────────────────
+   Dark-theme effects: shadows lean on depth + a faint periwinkle inset ring;
+   "glow" tokens give the instrument-panel feel on key elements.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Corner radii */
+  --radius-xs:   3px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
+  --radius-pill: 999px;
+
+  /* Shadows — depth on near-black */
+  --shadow-xs:   0 1px 2px rgba(0,0,0,0.40);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.45), 0 0 0 1px rgba(180,180,204,0.06);
+  --shadow-md:   0 6px 18px rgba(0,0,0,0.50), 0 0 0 1px rgba(180,180,204,0.07);
+  --shadow-lg:   0 14px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(180,180,204,0.08);
+  --shadow-pop:  0 24px 70px rgba(0,0,0,0.62);
+
+  /* Glows — instrument-panel accents */
+  --glow-accent: 0 0 18px rgba(180,180,204,0.28);
+  --glow-up:     0 0 18px rgba(45,212,191,0.30);
+  --glow-down:   0 0 18px rgba(240,80,143,0.30);
+  --glow-gold:   0 0 18px rgba(230,180,80,0.32);
+
+  /* Blur (glass) */
+  --blur-sm: 8px;
+  --blur-md: 14px;
+  --blur-lg: 24px;
+
+  /* Motion */
+  --ease-out:   cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --ease-in-out:cubic-bezier(0.65, 0, 0.35, 1); /* @kind other */
+  --dur-fast:   120ms; /* @kind other */
+  --dur-base:   200ms; /* @kind other */
+  --dur-slow:   360ms; /* @kind other */
+
+  /* Layering */
+  --z-base:    0; /* @kind other */
+  --z-sticky:  40; /* @kind other */
+  --z-header:  50; /* @kind other */
+  --z-overlay: 80; /* @kind other */
+  --z-modal:   100; /* @kind other */
+  --z-toast:   120; /* @kind other */
+}

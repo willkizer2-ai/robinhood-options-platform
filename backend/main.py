@@ -18,7 +18,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from app.api.routes import trades, news, scanner, alerts, research, health, performance
+from app.api.routes import trades, news, scanner, alerts, research, health, performance, replay, valuation
 from app.core.scanner import MarketScanner
 from app.core.news_engine import NewsIntelligenceEngine
 from app.core.research_agent import OvernightResearchAgent
@@ -81,6 +81,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"AlertSystem init failed: {e}")
 
+    try:
+        from app.core.replay_scheduler import run_daily_replay_scheduler
+        tasks.append(asyncio.create_task(run_daily_replay_scheduler()))
+        logger.info("DailyReplayScheduler started.")
+    except Exception as e:
+        logger.error(f"DailyReplayScheduler init failed: {e}")
+
     # Store in app state for route access (may be None if init failed)
     app.state.market_scanner = market_scanner
     app.state.news_engine = news_engine
@@ -124,6 +131,8 @@ app.include_router(scanner.router, prefix="/api/scanner", tags=["Scanner"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(research.router,     prefix="/api/research",     tags=["Research"])
 app.include_router(performance.router,  prefix="/api/performance",  tags=["Performance"])
+app.include_router(replay.router,       prefix="/api/replay",       tags=["Replay"])
+app.include_router(valuation.router,    prefix="/api/valuation",    tags=["Valuation"])
 
 
 if __name__ == "__main__":
