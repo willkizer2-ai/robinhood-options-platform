@@ -50,7 +50,7 @@ export default function Landing() {
             <a href="#product">Product</a><a href="#strategy">Strategy</a><a href="#performance">Performance</a>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <Link href="/login"><Button variant="ghost" size="sm">Sign in</Button></Link>
+            <Link href="/valuation"><Button variant="ghost" size="sm">Valuation</Button></Link>
             <Link href="/dashboard"><Button variant="primary" size="sm">Open the desk</Button></Link>
           </div>
         </div>
